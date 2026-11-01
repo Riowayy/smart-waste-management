@@ -1,0 +1,32 @@
+<?php
+
+namespace App\Http\Requests;
+
+use Illuminate\Foundation\Http\FormRequest;
+
+class StoreWasteReportRequest extends FormRequest
+{
+    public function authorize(): bool
+    {
+        return $this->user()?->isAdmin() === true;
+    }
+
+    public function rules(): array
+    {
+        return [
+            'user_id' => ['required', 'integer', 'exists:users,id'],
+            ...$this->reportRules(),
+        ];
+    }
+
+    protected function reportRules(): array
+    {
+        return [
+            'category_id' => ['nullable', 'integer', 'exists:waste_categories,id'],
+            'description' => ['required', 'string', 'max:10000'],
+            'image' => ['required', 'image', 'mimes:jpeg,png,webp', 'max:5120'],
+            'latitude' => ['nullable', 'numeric', 'between:-90,90'],
+            'longitude' => ['nullable', 'numeric', 'between:-180,180'],
+        ];
+    }
+}

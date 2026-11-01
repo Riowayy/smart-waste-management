@@ -1,0 +1,13 @@
+warning: in the working copy of 'bootstrap/app.php', CRLF will be replaced by LF the next time Git touches it
+ AGENTS.md                            | 153 [32m++++++++++++++++++++[m[31m---------[m
+ app/Models/User.php                  |  13 [32m++[m[31m-[m
+ app/Providers/AppServiceProvider.php |  16 [32m++[m[31m-[m
+ bootstrap/app.php                    |  42 [32m+++++++[m[31m-[m
+ composer.json                        |   1 [32m+[m
+ composer.lock                        |  65 [32m++++++++++++[m[31m-[m
+ resources/css/app.css                | 184 [32m++++++++++++++++++++++++++++++++[m[31m---[m
+ resources/js/app.js                  | 116 [32m+++++++++++++++++++++[m[31m-[m
+ routes/web.php                       |  41 [32m+++++++[m[31m-[m
+ tests/Feature/ExampleTest.php        |   2 [32m+[m[31m-[m
+ vite.config.js                       |   6 [31m--[m
+ 11 files changed, 567 insertions(+), 72 deletions(-)
