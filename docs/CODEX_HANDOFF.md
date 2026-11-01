@@ -699,3 +699,12 @@ Tidak ada source code, konfigurasi, migration, atau database yang diubah. File y
 - Skill yang digunakan: `frontend-craft`.
 - `php artisan route:list --path=admin/settings`: route tersedia. `npm run build`: berhasil; Vite tetap memberi peringatan bahwa font Inter lokal di-resolve saat runtime.
 - Tidak ada perubahan database, migration, autentikasi, dependency, atau mekanisme sidebar yang sudah ada. Tidak ada commit/push.
+## Penyesuaian Sidebar Admin dan Konfirmasi Keluar (2026-11-02)
+
+- Sidebar memakai latar gradasi emerald gelap yang selaras dengan identitas EcoTrack. Item aktif memakai bidang mint, teks/ikon gelap, dan penanda emerald; perilaku expanded/collapsed, icon rail, tooltip, profil, dan jam tetap dipertahankan.
+- Seluruh breadcrumb di halaman Admin dihapus agar judul halaman menjadi konteks utama. Label WITA di sebelah jam dan pada tooltip dihapus; waktu tetap diformat menggunakan `Asia/Makassar`.
+- Form logout Admin dan User kini meminta konfirmasi browser sebelum mengirim POST. Tombol Batal mencegah request logout; CSRF dan route logout tetap digunakan.
+- File diubah: `resources/views/components/admin/sidebar.blade.php`, `resources/views/user/dashboard.blade.php`, `resources/views/admin/settings/index.blade.php`, halaman kategori/pengguna Admin, `resources/css/app.css`, `resources/js/app.js`, `tests/Feature/AdminDashboardTest.php`, dan handoff ini.
+- Skill yang digunakan: `frontend-craft`.
+- `php artisan test tests/Feature/AdminDashboardTest.php`: lulus **6 test / 37 assertion** dengan SQLite in-memory. `php artisan view:cache`, `node --check resources/js/app.js`, dan `git diff --check`: lulus. `npm run build`: berhasil; peringatan font Inter lokal di-resolve saat runtime tetap muncul.
+- Tidak ada perubahan database, migration, dependency, route autentikasi, atau metode POST/CSRF logout. Tidak ada commit/push.

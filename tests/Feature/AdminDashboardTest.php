@@ -13,7 +13,7 @@ class AdminDashboardTest extends TestCase
 {
     use RefreshDatabase;
 
-    public function test_admin_sidebar_renders_wita_clock_and_single_post_logout_form(): void
+    public function test_admin_sidebar_renders_local_clock_and_guarded_post_logout_form(): void
     {
         $response = $this->actingAs($this->admin())->get(route('admin.dashboard'));
 
@@ -21,6 +21,7 @@ class AdminDashboardTest extends TestCase
             ->assertSee('data-sidebar-clock', false)
             ->assertSee('data-clock-date', false)
             ->assertSee('data-clock-time', false)
+            ->assertSee('data-logout-confirm', false)
             ->assertSee('name="_token"', false)
             ->assertSee('method="POST"', false);
 

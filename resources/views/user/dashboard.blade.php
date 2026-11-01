@@ -10,7 +10,7 @@
                 <h1 id="dashboard-title" class="mt-1 font-display text-2xl font-bold tracking-tight text-slate-900">Halo, {{ auth()->user()->name }}</h1>
                 <p class="mt-2 text-sm text-slate-500">Pantau laporan dan status penanganan yang Anda kirim.</p>
             </div>
-            <form method="POST" action="{{ route('logout') }}">
+            <form method="POST" action="{{ route('logout') }}" data-logout-confirm>
                 @csrf
                 <button type="submit" class="rounded-lg border border-slate-200 px-3 py-2 text-sm font-semibold text-slate-700 transition hover:bg-slate-50 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-emerald-700">Keluar</button>
             </form>

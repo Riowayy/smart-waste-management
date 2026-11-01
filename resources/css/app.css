@@ -120,11 +120,11 @@
     }
 
     .sidebar-link {
-        @apply flex items-center gap-3 rounded-xl px-3 py-3 text-sm font-medium text-slate-700 transition-colors hover:bg-emerald-100 hover:text-emerald-950;
+        @apply flex items-center gap-3 rounded-xl px-3 py-3 text-sm font-medium text-emerald-50 transition-colors hover:bg-white/10 hover:text-white;
     }
 
     .sidebar-link-active {
-        @apply relative bg-emerald-800 text-white shadow-sm hover:bg-emerald-900 hover:text-white;
+        @apply relative bg-emerald-100 text-emerald-950 shadow-sm hover:bg-emerald-50 hover:text-emerald-950;
     }
 
     .sidebar-link-active::before {
@@ -134,7 +134,7 @@
         width: 3px;
         height: 1.25rem;
         border-radius: 9999px;
-        background: #a7f3d0;
+        background: #34d399;
         content: "";
         transform: translateY(-50%);
     }
@@ -386,6 +386,71 @@ body.login-page::before {
     transition: width 180ms ease-out, translate 200ms ease-in-out;
 }
 
+#adminSidebar.admin-sidebar {
+    background: linear-gradient(165deg, #064e3b 0%, #075a43 58%, #064e3b 100%);
+    color: #ecfdf5;
+    border-color: rgb(255 255 255 / 12%);
+}
+
+.admin-sidebar .sidebar-header,
+.admin-sidebar .sidebar-footer {
+    border-color: rgb(255 255 255 / 13%);
+}
+
+.admin-sidebar .sidebar-brand-name,
+.admin-sidebar .sidebar-account-copy p:first-child {
+    color: #f0fdf4;
+}
+
+.admin-sidebar .sidebar-collapse-button,
+.admin-sidebar [data-sidebar-close] {
+    color: #d1fae5;
+}
+
+.admin-sidebar .sidebar-collapse-button:hover,
+.admin-sidebar [data-sidebar-close]:hover {
+    background: rgb(255 255 255 / 10%);
+    color: #fff;
+}
+
+.admin-sidebar .sidebar-clock-date,
+.admin-sidebar .sidebar-account-copy p:last-child {
+    color: rgb(236 253 245 / 72%);
+}
+
+.admin-sidebar .sidebar-clock-time-row,
+.admin-sidebar .sidebar-clock-compact {
+    color: #a7f3d0;
+}
+
+.admin-sidebar .sidebar-clock-icon {
+    color: #6ee7b7;
+}
+
+.admin-sidebar .sidebar-logout {
+    color: #fecdd3;
+}
+
+.admin-sidebar .sidebar-logout:hover {
+    background: rgb(251 113 133 / 12%);
+    color: #fff1f2;
+}
+
+.admin-sidebar .sidebar-logout:focus-visible,
+.admin-sidebar button:focus-visible,
+.admin-sidebar a:focus-visible {
+    outline-color: #a7f3d0;
+}
+
+.admin-sidebar .sidebar-rail-expand-icon {
+    color: #d1fae5;
+}
+
+.admin-sidebar .sidebar-rail-expand:hover .sidebar-rail-expand-icon,
+.admin-sidebar .sidebar-rail-expand:focus-visible .sidebar-rail-expand-icon {
+    color: #fff;
+}
+
 .admin-navbar,
 .admin-main {
     transition: left 180ms ease-out, margin-left 180ms ease-out;
@@ -406,7 +471,7 @@ body.login-page::before {
 }
 
 .sidebar-clock-compact {
-    color: #047857;
+    color: #a7f3d0;
 }
 
 .sidebar-logout {
@@ -535,7 +600,7 @@ body.login-page::before {
         margin: 0;
         padding: 0;
         border-radius: 0.625rem;
-        color: #047857;
+        color: #a7f3d0;
         cursor: default;
     }
 

@@ -4,13 +4,6 @@
 
 @section('content')
     <div class="space-y-6">
-        <nav aria-label="Breadcrumb" class="text-sm">
-            <ol class="flex items-center gap-2 text-slate-500">
-                <li><a href="{{ route('admin.dashboard') }}" class="hover:text-emerald-800 hover:underline">Dashboard</a></li>
-                <li aria-hidden="true">/</li>
-                <li aria-current="page" class="font-medium text-slate-700">Pengaturan</li>
-            </ol>
-        </nav>
 
         <header>
             <h1 class="font-display text-2xl font-bold text-slate-900">Pengaturan</h1>
@@ -125,7 +118,7 @@
 
         <p class="flex items-start gap-2 rounded-lg border border-emerald-100 bg-emerald-50/60 px-4 py-3 text-sm leading-5 text-emerald-950">
             <x-icon name="clock" class="mt-0.5 size-4 shrink-0" />
-            Jam pada sidebar menggunakan zona waktu WITA (Asia/Makassar).
+            Jam pada sidebar mengikuti zona waktu Asia/Makassar.
         </p>
     </div>
 @endsection

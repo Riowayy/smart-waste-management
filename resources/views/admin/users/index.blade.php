@@ -4,13 +4,6 @@
 
 @section('content')
     <div class="space-y-6">
-        <nav aria-label="Breadcrumb" class="text-sm">
-            <ol class="flex items-center gap-2 text-slate-500">
-                <li><a href="{{ route('admin.dashboard') }}" class="hover:text-emerald-800 hover:underline">Dashboard</a></li>
-                <li aria-hidden="true">/</li>
-                <li aria-current="page" class="font-medium text-slate-700">Pengguna</li>
-            </ol>
-        </nav>
 
         @if (session('status'))
             <div class="rounded-lg border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-900" role="status">{{ session('status') }}</div>

@@ -72,8 +72,8 @@ document.addEventListener('DOMContentLoaded', () => {
 
         sidebarClockDate.textContent = formattedDate;
         sidebarClockTime.textContent = time;
-        sidebarClock.dataset.clockTooltip = `${formattedDate} · ${time} WITA`;
-        sidebarClock.setAttribute('aria-label', `Waktu Makassar: ${formattedDate}, ${time} WITA`);
+        sidebarClock.dataset.clockTooltip = `${formattedDate} · ${time}`;
+        sidebarClock.setAttribute('aria-label', `Waktu Makassar: ${formattedDate}, ${time}`);
     };
 
     updateSidebarClock();
@@ -88,6 +88,14 @@ document.addEventListener('DOMContentLoaded', () => {
     sidebarNavigationLinks.forEach((link) => {
         link.addEventListener('mouseenter', positionSidebarTooltip);
         link.addEventListener('focus', positionSidebarTooltip);
+    });
+
+    document.querySelectorAll('[data-logout-confirm]').forEach((form) => {
+        form.addEventListener('submit', (event) => {
+            if (!window.confirm('Apakah Anda yakin ingin keluar dari akun EcoTrack?')) {
+                event.preventDefault();
+            }
+        });
     });
 
     const openMobileSidebar = () => {
