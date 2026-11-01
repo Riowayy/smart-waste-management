@@ -9,6 +9,7 @@ use Illuminate\Database\Eloquent\Attributes\Hidden;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 
 #[Fillable(['name', 'email', 'password'])]
 #[Hidden(['password', 'remember_token'])]
@@ -29,4 +30,18 @@ class User extends Authenticatable
             'password' => 'hashed',
         ];
     }
+    // Laporan yang dibuat oleh pengguna
+public function wasteReports(): HasMany
+{
+    return $this->hasMany(WasteReport::class);
+}
+
+// Riwayat perubahan status yang dilakukan pengguna
+public function changedReportStatuses(): HasMany
+{
+    return $this->hasMany(
+        ReportStatusHistory::class,
+        'changed_by'
+    );
+}
 }
