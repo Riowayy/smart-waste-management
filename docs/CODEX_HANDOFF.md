@@ -532,3 +532,170 @@ Skill yang instruksinya dibaca dan dipakai:
 - `playwright` — membuka dan memeriksa render login desktop dan register mobile; wrapper shell tidak dapat dijalankan di PowerShell, sehingga CLI yang sudah ada di cache lokal dipakai langsung. Tidak ada dependency project yang dipasang.
 
 Tidak ada source code, konfigurasi, migration, atau database yang diubah. File yang diperbarui pada tahap audit adalah `docs/CODEX_HANDOFF.md` saja.
+
+## TASK 007 — Registrasi Website dan User Management Admin (2026-11-02)
+
+### Kebijakan authentication
+
+- Website hanya menyediakan login untuk Admin dan User. Route web `GET /register` dan `POST /register` dihapus; akses langsung sekarang menghasilkan 404. Halaman login tidak lagi menampilkan ajakan atau tautan pendaftaran.
+- Registrasi web tidak lagi memiliki controller atau Blade view (`RegisteredUserController` dan `resources/views/auth/register.blade.php` dihapus). Link Register bawaan di welcome view juga dihapus.
+- Login berbasis session, logout, middleware role, rate limit login, dan command `php artisan ecotrack:provision-admin` dipertahankan.
+- Registrasi mobile tetap tersedia melalui `POST /api/v1/auth/register` di `Api\V1\AuthController`. Route API, Sanctum, dan kontrak respons tidak diubah.
+
+### User Management
+
+- Route `/admin/users` beserta create, detail, edit, update, dan delete berada di grup middleware `auth` + `role:admin`.
+- Daftar mendukung pencarian nama/email, filter role, pagination, dan hitungan laporan. Admin dapat melihat detail, membuat akun, mengubah nama/email/password/role, serta menghapus akun yang aman dihapus.
+- Pembuatan akun memakai Form Request. Nama/email/password divalidasi; email harus unik; password minimal 12 karakter dengan huruf besar-kecil, angka, simbol, dan konfirmasi. Password di-hash oleh cast `hashed` pada model `User`. Role hanya menerima `admin`/`user`; bila tidak dikirim, akun baru mendapat `user`. Form menetapkan User sebagai pilihan awal.
+- Admin dapat menetapkan role Admin secara eksplisit melalui User Management. Pengguna biasa ditolak middleware dari seluruh endpoint; tidak ada endpoint yang memungkinkan mereka membuat akun atau mengubah role.
+- Role Admin terakhir tidak dapat dihapus atau diturunkan. Akun yang sedang dipakai tidak dapat dihapus. Akun yang memiliki laporan juga tidak dapat dihapus karena foreign key `waste_reports.user_id` memakai cascade delete; pembatasan ini menjaga laporan dan riwayat operasional tetap tersimpan.
+- Schema `users`, migration, data, dan database tidak diubah. Tidak ada migration yang dijalankan.
+
+### File
+
+- Dibuat: `app/Http/Controllers/Admin/UserController.php`, `app/Http/Requests/StoreUserRequest.php`, `app/Http/Requests/UpdateUserRequest.php`, `resources/views/admin/users/index.blade.php`, `create.blade.php`, `edit.blade.php`, `show.blade.php`, `_form.blade.php`, dan `tests/Feature/UserManagementTest.php`.
+- Diubah: `routes/web.php`, `resources/views/auth/login.blade.php`, `resources/views/welcome.blade.php`, `resources/views/components/admin/sidebar.blade.php`, `tests/Feature/AuthenticationTest.php`, dan dokumen handoff ini.
+- Dihapus: `app/Http/Controllers/Auth/RegisteredUserController.php` dan `resources/views/auth/register.blade.php`.
+
+### Skill dan validasi
+
+- Skill yang dibaca dan diterapkan: `project-context` untuk menjaga catatan sesi; `frontend-craft` untuk mengikuti pola Blade dan desain EcoTrack pada halaman admin; `check-fix-accessibility` untuk label, required state, pesan error, dan struktur tabel; `testing-strategy` untuk menguji boundary route, otorisasi, dan persistence.
+- `php artisan test --testsuite=Feature`: **lulus, 48 test / 239 assertion**, menggunakan SQLite `:memory:` dari `phpunit.xml`. Cakupan meliputi login Admin/User, logout, tidak tersedianya registrasi web, pembuatan akun dan hashing, role, email duplikat/password lemah, proteksi user biasa, admin terakhir, penghapusan dengan perlindungan laporan, serta registrasi API mobile.
+- `npm run build`: **berhasil**. Peringatan font Inter lokal tetap muncul; file font akan di-resolve saat runtime.
+- `php -l` untuk controller, Form Request, dan test baru: tidak ada syntax error. `git diff --check`: lulus. `route:list` memastikan rute User Management terdaftar dan hanya route API yang menyediakan path `/register`.
+- Tidak ada dependency baru, perubahan database, commit, atau push.
+
+## TASK 008 - Audit Visual Website (2026-11-02)
+
+- Audit visual dan UX tersimpan di [docs/WEBSITE_VISUAL_AUDIT.md](WEBSITE_VISUAL_AUDIT.md); screenshot login 1440x900, 1280x800, 768x1024, dan 390x844 ada di output/playwright/.
+- Login diperiksa langsung di browser pada empat viewport dan tampil terbaca tanpa clipping. Halaman Admin/User yang memerlukan autentikasi hanya ditinjau dari source karena sesi/kredensial lokal yang sah tidak tersedia; tidak ada kredensial yang ditebak/dibuat. State kosong/loading/error juga tidak dipicu langsung.
+- Temuan utama: link Kategori/Pengaturan sidebar dan tombol notifikasi belum berfungsi; drawer mobile belum mengelola fokus; tabel laporan Admin perlu semantik dan pola mobile; tipografi metadata kecil; status Admin/User tidak konsisten; shell User terlalu sempit; palet token bercampur; perlu skip link, asosiasi error-field, reduced motion, dan pemeriksaan kontras.
+- Skor heuristik reviewer A Impeccable: 23/40 (Acceptable). Detektor otomatis reviewer B menghasilkan nol temuan, tetapi review manual menemukan masalah interaksi yang tidak tertangkap detector.
+- Rekomendasi urutan: fondasi aksesibilitas/shell, design token dan komponen, dashboard/tabel, alur laporan, User Management/shell User, lalu verifikasi seluruh halaman pada 1440/1280/768/390.
+- Bagian audit website di awal dokumen ini merupakan snapshot historis sebelum TASK 007. Untuk keadaan autentikasi dan User Management terkini, gunakan bagian TASK 007 di atas; untuk temuan visual, gunakan TASK 008 dan dokumen audit tertaut.
+- Tidak ada source, route, migration, konfigurasi, atau database yang diubah pada TASK 008. Tidak ada test/build dijalankan.
+
+
+## TASK 009 - Inspeksi Visual Terautentikasi (2026-11-02)
+
+- TASK 009 melanjutkan audit TASK 008 dengan Playwright CLI dan sesi login manual. Sesi yang tersedia adalah Admin.
+- Lima halaman Admin berhasil diperiksa pada 1440x900, 1280x800, 768x1024, dan 390x844: dashboard, daftar laporan, detail laporan #1, daftar pengguna, dan detail akun Admin #1. Total 20 screenshot full-page tersimpan di output/playwright/website-audit/. Identitas/email, isi laporan, koordinat, catatan, dan foto diganti/disamarkan dalam screenshot.
+- User Dashboard dan detail laporan User tidak dapat diperiksa: kedua route menghasilkan HTTP 403 pada sesi Admin, dan daftar User Management hanya menampilkan akun Admin yang sedang login. Tidak ada akun dibuat dan database tidak diubah. Jangan anggap kedua halaman User telah divalidasi secara visual.
+- Temuan browser utama: tabel laporan dan pengguna memakai scroll horizontal internal pada mobile; dashboard menjadi sangat panjang pada 390 px; drawer sidebar tetap memiliki link tabbable saat tertutup/offscreen; Escape menutup drawer dan fokus tetap pada tombol toggle; tautan Detail memiliki underline hover dan outline fokus hijau.
+- Detail laporan memperlihatkan state riwayat kosong; foto asli termuat, tetapi diganti placeholder dalam screenshot untuk privasi. User Management memuat satu akun Admin. Detail pengguna tidak menampilkan password.
+- Temuan runtime dipisahkan dari rekomendasi berbasis source di bagian TASK 009 dokumen docs/WEBSITE_VISUAL_AUDIT.md. Prioritas redesign: perbaiki urutan/fokus keyboard drawer, pengalaman tabel mobile, kepadatan dashboard, dan konsistensi semantik/typography.
+- Tidak ada source, route, migration, database, atau konfigurasi yang diubah. Tidak ada form dikirim, status diubah, data dihapus, test/build dijalankan, atau commit/push dilakukan.
+
+## TASK 010 - Refinement Visual Halaman Login (2026-11-02)
+
+- Halaman Login menggunakan gambar lokal `public/assets/images/background.png` (PNG, 1672 x 941) sebagai background penuh dengan `cover`, posisi tengah, dan overlay gradient gelap transparan. Gambar asli tidak diubah.
+- Form ditampilkan sebagai panel frosted glass dengan blur 18px, border terang, shadow lembut, input semi-transparan, dan tombol emerald. Panel diletakkan di bagian atas-tengah agar objek lingkungan di area bawah gambar tetap terlihat.
+- Mark dan nama EcoTrack, font Inter lokal, alur POST/CSRF, validasi, status session, checkbox ingat saya, serta route/session authentication tetap dipakai. Tidak ada tautan pendaftaran. Controller, middleware, route, dan database tidak diubah.
+- Styling halaman dibatasi dengan class `login-page`; layout auth bersama hanya diberi section opsional agar halaman pengguna yang memakai layout tersebut mempertahankan brand/layout bawaan.
+- Screenshot browser empat viewport tersedia di `output/playwright/login-task-010/`: `login-1440x900.png`, `login-1280x800.png`, `login-768x1024.png`, dan `login-390x844.png`. Keempatnya tidak mengalami overflow horizontal atau clipping; background termuat pada semua ukuran. Urutan fokus keyboard dan outline terlihat, dan reduced motion menonaktifkan animasi/transisi.
+- Skill yang dibaca dan digunakan: `project-context`, `design-taste-frontend`, `impeccable` (termasuk detector satu kali, hasil `[]`), `baseline-ui`, `emil-design-eng`, `web-design-guidelines`, `frontend-craft`, `frontend-design`, `check-fix-accessibility`, `testing-strategy`, dan `playwright`.
+- `php artisan test tests/Feature/AuthenticationTest.php`: **lulus, 10 test / 35 assertion**, memakai SQLite in-memory dari konfigurasi PHPUnit. `npm run build`: **berhasil**; Vite menampilkan peringatan font Inter lokal akan di-resolve saat runtime. `git diff --check`: lulus tanpa whitespace error.
+- Tidak ada dependency, migration, konfigurasi testing, route, backend authentication, atau database yang diubah. Tidak ada commit/push. Tes login browser tidak mengirim kredensial; verifikasi alur login menggunakan Feature Test yang ada.
+
+## TASK 010.1 - Refinement Glassmorphism Login Desktop (2026-11-02)
+
+- Revisi desktop menggunakan background login lokal `public/assets/images/background.png` yang sama. Gambar dan focal point tidak diganti atau diedit.
+- Panel desktop diubah dari permukaan pucat menjadi gradient kaca emerald gelap dengan alpha `0.42` dan `0.32`, `backdrop-filter: blur(22px) saturate(145%)`, border putih 30%, radius 24px, dan shadow lembut. Computed `background-color` panel bernilai transparan; computed `background-image` mempertahankan dua stop RGBA sehingga gambar terlihat melalui panel.
+- Teks/label desktop memakai putih lembut, input memiliki background putih transparan 10%, dan tombol tetap emerald solid. Hover tombol berubah halus; focus input memakai outline emerald muda yang terlihat.
+- Pada breakpoint desktop (min-width 1024px), main memakai `min-height: 100vh` dan `100svh`, flex alignment di tengah pada kedua sumbu, serta padding aman 24px. Viewport 1440x900 menghasilkan panel x=496/y=215.2/448x469.6 px; viewport 1280x800 menghasilkan x=416/y=165.2/448x469.6 px. Keduanya tepat terpusat dan tanpa overflow. Styling alignment dan panel dark hanya di-override pada desktop; layout/tablet/mobile TASK 010 tetap menjadi baseline.
+- Screenshot final tersedia di `output/playwright/login-task-010-1/login-1440x900.png` dan `output/playwright/login-task-010-1/login-1280x800.png`. Dibandingkan screenshot TASK 010, panel tidak lagi tampak putih; ilustrasi, termasuk truk dan lanskap, terlihat melalui bidang glass.
+- Skill yang digunakan: `design-taste-frontend`, `impeccable` (review visual dan detector, hasil `[]`), `baseline-ui`, `emil-design-eng`, `web-design-guidelines` (guidelines terbaru diperiksa), `frontend-craft`, `frontend-design`, dan `check-fix-accessibility`.
+- `php artisan test tests/Feature/AuthenticationTest.php`: lulus **10 test / 35 assertion** menggunakan konfigurasi test yang sudah ada. `npm run build`: berhasil; Vite tetap memberi peringatan font Inter lokal di-resolve saat runtime. `git diff --check`: lulus tanpa kesalahan whitespace.
+- Tidak ada perubahan auth/backend, route, database, migration, dependency, atau pengaturan responsif tablet/mobile. Tidak ada commit/push.
+
+## TASK 010.2 - Refinement Ultra-Light Glass Login Desktop (2026-11-02)
+
+- Permukaan login desktop dibuat lebih transparan: gradient emerald `rgba(7, 43, 39, 0.18)` ke `rgba(11, 52, 48, 0.12)`, blur 24px/saturasi 155%, border putih 24%, shadow 20px 55px dengan alpha 14%, dan inset highlight 16%. Background image sekarang lebih dominan dan bentuk ilustrasi tetap terlihat melalui card.
+- Posisi desktop dari TASK 010.1 dipertahankan pada center horizontal dan vertikal. Panel tidak dihilangkan; border, radius 24px, blur, dan shadow tetap membedakannya dari background.
+- Kontras konten dipertahankan dengan teks putih lembut dan shadow teks yang sangat tipis. Field memakai tint emerald transparan 20% (28% saat fokus) dengan border 26%; ini menjaga keterbacaan input tanpa membuat panel luar menjadi solid. Focus outline emerald muda dan tombol emerald tetap berfungsi.
+- Validasi browser dilakukan hanya pada 1440x900 dan 1280x800. Computed style menunjukkan gradient RGBA sesuai target, `background-color` transparan, backdrop blur 24px/saturasi 155%, posisi panel terpusat, dan tidak ada overflow. Urutan Tab mencapai input Email dengan outline terlihat; hover tombol berubah ke warna emerald yang lebih terang.
+- Screenshot tersedia di `output/playwright/login-task-010-2/login-1440x900.png` dan `output/playwright/login-task-010-2/login-1280x800.png`. Layout tablet/mobile tidak diubah atau diperiksa pada task ini.
+- Skill yang digunakan: `impeccable` (craft floor dan detector; hasil `[]`), `frontend-craft` (implementasi dan pemeriksaan render), dan `baseline-ui` (hirarki/kontras komponen).
+- `php artisan test tests/Feature/AuthenticationTest.php`: lulus **10 test / 35 assertion** setelah build selesai. `npm run build`: berhasil; peringatan font lokal akan di-resolve saat runtime tetap muncul. `git diff --check`: lulus tanpa whitespace error.
+- Tidak ada perubahan Blade, backend authentication, route, database, migration, atau dependency. Tidak ada commit/push.
+
+## TASK 010.3 - Styling Autofill Login Desktop (2026-11-02)
+
+- Screenshot pengguna menunjukkan Chrome menerapkan warna autofill biru pucat dan teks hitam, sedangkan CSS login hanya menetapkan `color`/`background-color` normal. Akar masalahnya adalah tidak adanya aturan pseudo-class autofill, sehingga gaya bawaan browser memenangkan tampilan field yang terisi otomatis.
+- CSS desktop kini menangani `:-webkit-autofill` (termasuk hover/focus) serta `:autofill`. `-webkit-text-fill-color` dan caret memakai putih lembut; inset shadow emerald transparan menutupi fill pucat browser tanpa membuat field solid; border dan text-shadow mengikuti tema glass. State fokus memakai tint 28% dan border emerald muda.
+- Pemeriksaan browser dilakukan pada 1280x800 dengan nilai preview sintetis `autofill-preview@example.test` dan password dummy, tanpa submit. CSS autofill terkompilasi terdeteksi; hasil visual memperlihatkan teks putih dan field glass emerald. Sesi Playwright tidak memiliki kredensial tersimpan untuk memicu autofill native, sehingga preview visual memakai deklarasi CSS autofill yang sama.
+- Skill yang digunakan: `systematic-debugging` (reproduksi dari screenshot, identifikasi kekurangan aturan pseudo-class, lalu verifikasi perbaikan minimal) dan `frontend-craft` (pemeriksaan hasil di browser).
+- `php artisan test tests/Feature/AuthenticationTest.php`: lulus **10 test / 35 assertion**. `npm run build`: berhasil; peringatan font Inter lokal saat runtime tetap muncul. `git diff --check`: lulus.
+- Hanya CSS login desktop dan handoff yang diubah. Tidak ada perubahan authentication, Blade, route, database, dependency, atau layout tablet/mobile.
+
+## TASK 011 - Sidebar dan Navbar Admin (2026-11-02)
+
+- Sidebar desktop menggunakan lebar 224px saat expanded dan icon rail 80px saat collapsed. Konten utama dan navbar menyesuaikan margin/offset ke rail; sidebar tidak lagi menghilang dari layar.
+- Tombol collapse berada di header sidebar. Saat collapsed, mark EcoTrack menjadi tombol expand; hover/focus menukar logo dengan ikon panel-open lokal. Menu tetap berupa link Laravel, menyimpan `aria-current`, label aksesibel, serta tooltip visual ketika rail collapsed.
+- Spacing menu dinaikkan dan diseragamkan; avatar/inisial dan nama Admin dipindah ke footer sidebar. Navbar tetap menyediakan notifikasi dan logout. Ikon navigasi menggunakan komponen inline SVG lokal dengan stroke seragam; ditambahkan ikon panel-left close/open.
+- State collapsed disimpan di `sessionStorage` per tab dan dipulihkan sebelum render layout Admin; aksi toggle tidak mengubah URL. Kontrol header/rail memakai button dengan label dan `aria-expanded`; fokus berpindah ke kontrol pasangan setelah collapse/expand.
+- File diubah: `resources/views/components/admin/sidebar.blade.php`, `resources/views/components/admin/navbar.blade.php`, `resources/views/components/icon.blade.php`, `resources/views/layouts/admin.blade.php`, `resources/css/app.css`, `resources/js/app.js`, dan handoff ini.
+- `npm run build`: berhasil (peringatan resolve font Inter lokal tetap muncul). `node --check resources/js/app.js`: lulus. `php artisan test tests/Feature/AdminDashboardTest.php`: lulus **5 test / 29 assertion**. Detector Impeccable menghasilkan `[]`; `git diff --check` lulus.
+- Playwright menggunakan sesi Admin yang diberikan pengguna. Pada 1440x900 dan 1280x800, expanded/collapsed masing-masing menghasilkan lebar sidebar 224px/80px; posisi konten bergeser mengikuti x=224px/x=80px. Tidak ditemukan overflow horizontal pada halaman Dashboard.
+- Interaksi browser terverifikasi: toggle tidak mengubah URL; label menu tersembunyi saat collapsed; tooltip muncul saat hover pada item; logo berubah menjadi ikon expand saat hover lalu kembali saat pointer keluar; Enter mengaktifkan expand/collapse dan fokus berpindah ke tombol pasangan. State collapsed tetap tersimpan saat navigasi Dashboard ↔ Laporan Sampah; active menu mengikuti route. Konsol browser: 0 error dan 0 warning.
+- Screenshot tersimpan di `output/playwright/sidebar-task-011/`: `admin-expanded-1440x900.png`, `admin-collapsed-1440x900.png`, `admin-collapsed-hover-1440x900.png`, `admin-expanded-1280x800.png`, dan `admin-collapsed-1280x800.png`. Informasi identitas pada area sidebar dan tabel dashboard diburamkan hanya pada screenshot.
+- Pemeriksaan visual screenshot memastikan rail/avatar/footer tetap terlihat dan konten dashboard mengikuti lebar yang tersedia pada kedua desktop viewport. Mobile/tablet tidak termasuk pemeriksaan task ini.
+- Skill yang dibaca dan digunakan: `project-context`, `design-taste-frontend`, `impeccable` (termasuk craft floor dan detector, hasil `[]`), `baseline-ui`, `emil-design-eng`, `frontend-craft`, `frontend-design`, `check-fix-accessibility`, dan `playwright`. Tidak ada skill yang tidak tersedia yang diklaim.
+- `npm run build`: berhasil; peringatan font Inter lokal yang akan di-resolve saat runtime tetap muncul. `node --check resources/js/app.js`, `php artisan test tests/Feature/AdminDashboardTest.php` (**5 test / 29 assertion**), dan `git diff --check`: lulus.
+- Tidak ada perubahan authentication, controller, route, database, migration, dependency, atau fitur laporan. Tidak ada commit/push.
+
+## TASK 011.1 - Clock Sidebar dan Integrasi Logout (2026-11-02)
+
+- Footer sidebar kini tersusun sebagai clock, divider, profil Admin, lalu tombol Keluar. Footer tidak menyusut dan tetap menempel di bawah viewport; area navigasi memakai scroll vertikal independen. Uji DOM sementara dengan 24 item menu tambahan menunjukkan `scrollHeight` melebihi tinggi area menu, `scrollTop` dapat bergerak, dan posisi footer tetap di batas bawah viewport.
+- Clock memakai `Intl.DateTimeFormat` locale `id-ID` dan timezone eksplisit `Asia/Makassar`; format tanggal berupa hari/tanggal/bulan/tahun Indonesia dan jam 24 jam `HH:mm:ss WITA`. Pemisah jam disusun dari `formatToParts` agar tetap menggunakan titik dua. Nilai diperbarui setiap detik, atribut tooltip dan label aksesibel ikut diperbarui, serta clock dapat difokuskan saat rail collapsed.
+- Pengujian browser mengemulasikan timezone `America/Los_Angeles`: jam lokal browser berbeda dari jam sidebar, sedangkan tanggal dan jam sidebar tetap menunjukkan Makassar/WITA. Pengamatan dua tick memperlihatkan jam diperbarui tiap detik.
+- Dalam icon rail 80px, clock tampil sebagai ikon dengan tooltip tanggal/waktu lengkap; Keluar tampil sebagai ikon logout merah dengan tooltip dan `aria-label`. Clock dan tombol Keluar dapat dicapai dengan keyboard. Expanded menampilkan tanggal, jam, profil, role, dan label Keluar.
+- Form logout dipindah dari navbar ke bawah profil pada sidebar. Form tetap memakai route `logout`, method POST, dan `@csrf`; browser menemukan satu form logout, token CSRF hadir, dan navbar tidak memuat form logout. Route/controller authentication tidak diubah; pengujian sesi logout yang sudah ada tetap lulus.
+- File diubah: `resources/views/components/admin/sidebar.blade.php`, `resources/views/components/admin/navbar.blade.php`, `resources/views/components/icon.blade.php`, `resources/css/app.css`, `resources/js/app.js`, `tests/Feature/AdminDashboardTest.php`, dan handoff ini. Test Dashboard ditambah assertion untuk clock, token CSRF, method POST, serta satu-satunya form logout.
+- Screenshot 1440x900 dan 1280x800, expanded/collapsed, serta tooltip tersedia di `output/playwright/sidebar-task-011-1/`. Nama file: `admin-expanded-1440x900.png`, `admin-collapsed-1440x900.png`, `admin-expanded-1280x800.png`, `admin-collapsed-1280x800.png`, `admin-clock-tooltip-1440x900.png`, `admin-logout-tooltip-1440x900.png`, dan `admin-menu-tooltip-1440x900.png`. Informasi identitas Admin/pelapor diburamkan hanya pada screenshot.
+- Skill yang dibaca dan digunakan: `project-context`, `frontend-craft`, `baseline-ui`, `emil-design-eng`, `check-fix-accessibility`, dan `playwright`.
+- `php artisan test tests/Feature/AuthenticationTest.php tests/Feature/AdminDashboardTest.php`: lulus **16 test / 71 assertion**, termasuk login/logout menggunakan SQLite in-memory sesuai konfigurasi PHPUnit. `npm run build`: berhasil; peringatan font Inter lokal akan di-resolve saat runtime tetap muncul. `node --check resources/js/app.js` dan `git diff --check`: lulus.
+- Tidak ada perubahan route, controller, middleware, database, migration, atau dependency; tidak ada commit/push.
+
+## TASK 012 - Manajemen Kategori EcoTrack (2026-11-02)
+
+- Halaman `/admin/categories` kini menyediakan ringkasan berbasis database, pencarian nama/slug/deskripsi, pagination, tabel kategori, empty state, serta aksi tambah, edit, dan hapus. Header memuat breadcrumb dan aksi utama. Ringkasan menampilkan total kategori, kategori yang memiliki laporan, dan jumlah laporan unik yang memiliki referensi kategori.
+- Schema yang tersedia dipertahankan: `waste_categories.name`, `slug`, `description`, timestamp; laporan memiliki `category_id` dan `ai_category_id`, keduanya nullable dengan `nullOnDelete`. Daftar menggunakan `withCount(['reports', 'aiPredictedReports'])` dan menampilkan dua hitungan relasi secara terpisah. Ringkasan laporan tidak menggandakan laporan yang memiliki kategori terkonfirmasi sekaligus prediksi AI.
+- CRUD memakai Form Request, otorisasi Admin pada route `auth` + `role:admin`, pencarian server-side, dan pesan flash. Slug dihasilkan dari nama dan diberi akhiran angka bila slug sudah dipakai. Form hanya meminta nama wajib dan deskripsi opsional.
+- Penghapusan berjalan dalam transaksi dengan lock kategori dan ditolak bila laporan mana pun masih merujuknya melalui kategori terkonfirmasi atau prediksi AI. Laporan tidak dihapus. UI juga menampilkan konfirmasi native sebelum mengirim request DELETE ber-CSRF.
+- Sidebar tidak diubah. Link Kategori yang sudah ada aktif pada seluruh route kategori; browser juga memastikan sidebar expanded/collapsed dan clock WITA tetap berjalan.
+- File baru: `app/Http/Controllers/Admin/CategoryController.php`, `app/Http/Requests/StoreCategoryRequest.php`, `app/Http/Requests/UpdateCategoryRequest.php`, `resources/views/admin/categories/index.blade.php`, `create.blade.php`, `edit.blade.php`, `_form.blade.php`, dan `tests/Feature/CategoryManagementTest.php`.
+- File diubah: `routes/web.php`, `resources/views/components/icon.blade.php` (ikon leaf, recycle, plus, edit, delete, tag), `tests/Feature/CategoryManagementTest.php`, dan handoff ini. Tidak ada migration, schema, data, API mobile, authentication, controller laporan, atau dependency yang diubah.
+- Screenshot Playwright tersedia di `output/playwright/category-task-012/`: daftar expanded/collapsed pada 1440x900 dan 1280x800, form create/edit, serta empty search state. Browser memeriksa active state Kategori, dialog konfirmasi penghapusan (ditutup tanpa submit), tombol/form, dan sidebar. Database lokal tidak diubah oleh inspeksi browser.
+- Skill yang digunakan: `project-context`, `database-schema-designer` (meninjau relasi kategori dan laporan sebelum memilih aturan delete), `impeccable` (context, craft floor, detector), `baseline-ui`, `frontend-craft`, `check-fix-accessibility`, `testing-strategy`, dan `playwright`. Detector Impeccable hanya menandai font Inter yang sudah menjadi font lokal wajib EcoTrack; font dipertahankan sesuai brief.
+- `php artisan test tests/Feature/CategoryManagementTest.php tests/Feature/AuthenticationTest.php tests/Feature/AdminDashboardTest.php`: lulus **25 test / 122 assertion** menggunakan konfigurasi SQLite in-memory. Cakupan kategori mencakup akses, active state, CRUD, slug unik, validasi duplikat saat create/update, proteksi dua jenis relasi laporan, dan agregat yang sesuai.
+- `npm run build`: berhasil; peringatan font Inter lokal akan di-resolve saat runtime tetap muncul. `node --check resources/js/app.js`, `git diff --check`, dan pemeriksaan `route:list --path=admin/categories`: lulus. Semua enam route kategori tetap berada di grup Admin.
+- Tidak ada pekerjaan kategori tertunda. Tidak ada commit atau push.
+
+## TASK 013 - Penyempurnaan UI Manajemen Pengguna (2026-11-02)
+
+- UI User Management dirapikan agar mengikuti pola Category Management: breadcrumb, judul/deskripsi sesuai brief, tombol utama Tambah Pengguna, ringkasan tiga angka dalam satu strip, panel daftar dengan pencarian/filter, tabel lapang, dan empty state dengan aksi lanjutan.
+- Ringkasan Total Pengguna/Admin/User menggunakan satu query agregat database tanpa angka dummy. Daftar tetap mencari nama/email di server, memakai filter role, `withCount('wasteReports')`, dan mempertahankan query ketika berpaginasi.
+- Tabel kini menampilkan inisial, nama/email, role, jumlah laporan, tanggal bergabung, Detail/Edit, serta aksi hapus. Aksi hapus di UI dinonaktifkan dan alasannya diumumkan bila akun sedang digunakan, masih memiliki laporan, atau merupakan Admin terakhir. Aturan keamanan di controller tetap menjadi perlindungan utama.
+- Halaman detail menampilkan identitas, role, tanggal bergabung, jumlah laporan/perubahan status, dan alasan penghapusan akun. Password tidak ditampilkan. Form create/edit memiliki breadcrumb, lebar terukur, field berlabel dengan placeholder dan error state, petunjuk password, serta aksi Simpan/Batal. Role akun yang sedang digunakan dikunci pada UI agar tidak berubah tanpa sengaja.
+- File diubah: `app/Http/Controllers/Admin/UserController.php` (agregat index dan jumlah Admin untuk detail), `resources/views/admin/users/index.blade.php`, `show.blade.php`, `create.blade.php`, `edit.blade.php`, `_form.blade.php`, `tests/Feature/UserManagementTest.php`, dan handoff ini. Tidak ada file source baru, route, migration, database, authentication, API mobile, mekanisme sidebar, dependency, atau fitur laporan yang diubah.
+- Feature test bertambah untuk ringkasan berbasis data aktual, pencarian/filter, parameter pagination, dan penguncian role akun Admin yang sedang dipakai. Test gabungan `php artisan test tests/Feature/UserManagementTest.php tests/Feature/AuthenticationTest.php`: **21 test / 108 assertion lulus** dengan `DB_CONNECTION=sqlite` dan `DB_DATABASE=:memory:` dari `phpunit.xml`.
+- Playwright memeriksa daftar expanded/collapsed pada 1440×900 dan 1280×800, search+filter role, empty state filter User, halaman detail, form create/edit, active state sidebar, dan clock WITA. Tidak ada error atau warning console. Lebar dokumen/body sama dengan viewport; tidak ditemukan horizontal overflow. Pagination browser tidak terlihat karena database lokal hanya memiliki satu akun; query pagination diuji lewat Feature Test SQLite.
+- Browser tidak mengirim form, mengubah role, atau menghapus data. Tombol/konfirmasi hapus tidak dapat diuji pada browser karena satu-satunya akun lokal adalah Admin yang sedang digunakan dan memiliki laporan. Proteksi terkait tetap diuji pada SQLite Feature Tests; inspeksi konfirmasi browser ditunda sampai tersedia akun yang aman.
+- Screenshot tersimpan di `output/playwright/user-management-task-013/`: `users-list-1440x900-expanded.png`, `users-list-1440x900-collapsed.png`, `users-list-1280x800-expanded.png`, `users-list-1280x800-collapsed.png`, `user-detail-1440x900.png`, `user-create-1440x900.png`, `user-edit-1440x900.png`, dan `users-empty-filtered-1440x900.png`. Identitas akun lokal diburamkan pada screenshot.
+- Skill yang digunakan: `project-context`, `design-taste-frontend` (panduan app-screen), `impeccable` (dua penilaian read-only dan detector), `baseline-ui`, `frontend-craft`, `check-fix-accessibility`, `testing-strategy`, dan `playwright`. Detector Impeccable tidak melaporkan temuan.
+- `npm run build`: berhasil; peringatan yang sudah ada tentang file font Inter lokal yang di-resolve saat runtime tetap muncul. `git diff --check`: lulus. JavaScript tidak berubah sehingga `node --check` tidak diperlukan.
+- Tidak ada pekerjaan UI User Management lain yang tertunda selain pemeriksaan dialog penghapusan langsung di browser apabila akun uji aman tersedia. Tidak ada commit atau push.
+## TASK 014 - Redesign UI Admin Dashboard (dikembalikan atas permintaan, 2026-11-02)
+
+- Setelah masukan pengguna, tampilan Dashboard dan komponen KPI dikembalikan ke implementasi sebelumnya. Perubahan visual TASK 014 pada Blade, chart, CSS, filter laporan, dan test dibatalkan; query dan statistik database tetap digunakan.
+- Sidebar TASK 011 dan TASK 011.1 dipertahankan. Screenshot hasil TASK 014 tetap tersimpan di `output/playwright/dashboard-task-014/` sebagai arsip.
+
+## Penyegaran Sidebar dan Halaman Pengaturan Admin (2026-11-02)
+
+- Sidebar kini memakai latar hijau netral lembut. Item aktif memakai emerald gelap, teks dan ikon putih, serta aksen mint; mekanisme collapse, tooltip, jam WITA, profil Admin, logout, dan lebar icon rail tidak diubah.
+- Link Pengaturan kini menuju route `admin.settings.index` di dalam grup middleware Admin. Halaman menyediakan ringkasan akun Admin aktual, alur status laporan Pending → In Progress → Completed/Rejected, dan pintasan ke Laporan, Kategori, serta Manajemen Pengguna. Tidak ada kontrol pengaturan palsu atau perubahan data.
+- File diubah: `resources/views/components/admin/sidebar.blade.php`, `resources/css/app.css`, `routes/web.php`, `resources/views/admin/settings/index.blade.php`, dan handoff ini.
+- Skill yang digunakan: `frontend-craft`.
+- `php artisan route:list --path=admin/settings`: route tersedia. `npm run build`: berhasil; Vite tetap memberi peringatan bahwa font Inter lokal di-resolve saat runtime.
+- Tidak ada perubahan database, migration, autentikasi, dependency, atau mekanisme sidebar yang sudah ada. Tidak ada commit/push.

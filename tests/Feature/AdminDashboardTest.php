@@ -13,6 +13,20 @@ class AdminDashboardTest extends TestCase
 {
     use RefreshDatabase;
 
+    public function test_admin_sidebar_renders_wita_clock_and_single_post_logout_form(): void
+    {
+        $response = $this->actingAs($this->admin())->get(route('admin.dashboard'));
+
+        $response->assertOk()
+            ->assertSee('data-sidebar-clock', false)
+            ->assertSee('data-clock-date', false)
+            ->assertSee('data-clock-time', false)
+            ->assertSee('name="_token"', false)
+            ->assertSee('method="POST"', false);
+
+        $this->assertSame(1, substr_count($response->getContent(), 'action="'.route('logout').'"'));
+    }
+
     public function test_dashboard_statistics_match_report_statuses_in_the_database(): void
     {
         $admin = $this->admin();
@@ -96,7 +110,9 @@ class AdminDashboardTest extends TestCase
 
         $response = $this->actingAs($admin)->get(route('admin.dashboard'));
 
-        $response->assertOk()->assertSee('Reporter Latest')->assertSee('Organic Waste');
+        $response->assertOk()
+            ->assertSee('Reporter Latest')
+            ->assertSee('Organic Waste');
         $recentReports = $response->viewData('recentReports');
         $this->assertCount(6, $recentReports);
         $this->assertSame($reports[0]->id, $recentReports->first()->id);

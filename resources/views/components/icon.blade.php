@@ -7,6 +7,24 @@
         @case('file-text')
             <path d="M14 2.8H6.5A2.5 2.5 0 0 0 4 5.3v13.4a2.5 2.5 0 0 0 2.5 2.5h11a2.5 2.5 0 0 0 2.5-2.5V9z"/><path d="M14 2.8V9h6M8 13h8M8 17h8"/>
             @break
+        @case('leaf')
+            <path d="M20 4c-6.2 0-11 1.9-13.6 5.4C4.2 12.2 5.1 16 8.1 17c3 1 6-.6 8.1-3.7C18.1 10.5 19.2 7 20 4Z"/><path d="M4 20c3.2-4.1 6.6-7 11.4-9.8"/>
+            @break
+        @case('recycle')
+            <path d="m7 19-3-3 3-3"/><path d="M4 16h4a3 3 0 0 0 2.6-1.5l1-1.7"/><path d="m17 5 4 1-1 4"/><path d="m21 6-2 3.5a3 3 0 0 1-2.6 1.5h-2"/><path d="m8 5 1-3 4 1"/><path d="m9 2 2 3.5a3 3 0 0 1 0 3L10 10"/>
+            @break
+        @case('plus')
+            <path d="M12 5v14M5 12h14"/>
+            @break
+        @case('pencil')
+            <path d="m16 4 4 4M4 20l4.5-1 10.7-10.7a2.1 2.1 0 0 0-3-3L5.5 16 4 20Z"/>
+            @break
+        @case('trash-2')
+            <path d="M3 6h18M8 6V4h8v2m3 0-1 14H6L5 6m4 4v6m6-6v6"/>
+            @break
+        @case('tag')
+            <path d="m20.2 13.2-7 7a2 2 0 0 1-2.8 0l-7.6-7.6a2 2 0 0 1-.6-1.4V5a2 2 0 0 1 2-2h6.2a2 2 0 0 1 1.4.6l8.4 6.8a2 2 0 0 1 0 2.8Z"/><circle cx="7.5" cy="7.5" r="1.1"/>
+            @break
         @case('tags')
             <path d="m20.2 13.2-7 7a2 2 0 0 1-2.8 0l-7.6-7.6a2 2 0 0 1-.6-1.4V5a2 2 0 0 1 2-2h6.2a2 2 0 0 1 1.4.6l8.4 6.8a2 2 0 0 1 0 2.8Z"/><circle cx="7.5" cy="7.5" r="1.1"/>
             @break
@@ -51,6 +69,15 @@
             @break
         @case('chevron-right')
             <path d="m9 18 6-6-6-6"/>
+            @break
+        @case('panel-left-close')
+            <rect x="3.5" y="4" width="17" height="16" rx="2"/><path d="M9 4v16m7-11-3 3 3 3"/>
+            @break
+        @case('panel-left-open')
+            <rect x="3.5" y="4" width="17" height="16" rx="2"/><path d="M9 4v16m4-11 3 3-3 3"/>
+            @break
+        @case('log-out')
+            <path d="M10 17l5-5-5-5M15 12H3"/><path d="M12 3h5a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-5"/>
             @break
         @case('x')
             <path d="m18 6-12 12M6 6l12 12"/>

@@ -5,6 +5,15 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta name="csrf-token" content="{{ csrf_token() }}">
     <title>@yield('title', 'Dashboard') | EcoTrack</title>
+    <script>
+        try {
+            if (window.matchMedia('(min-width: 1024px)').matches && window.sessionStorage.getItem('ecotrack.adminSidebar.collapsed') === 'true') {
+                document.documentElement.classList.add('sidebar-collapsed');
+            }
+        } catch (error) {
+            // Sidebar persistence is optional when browser storage is unavailable.
+        }
+    </script>
     @vite(['resources/css/app.css', 'resources/js/app.js'])
 </head>
 <body class="min-h-screen bg-surface font-sans text-on-surface">

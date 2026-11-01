@@ -37,37 +37,39 @@ class AuthenticationTest extends TestCase
         $this->assertGuest();
     }
 
-    public function test_registration_creates_an_authenticated_user(): void
+    public function test_public_website_registration_routes_are_not_available(): void
     {
-        $response = $this->post(route('register.store'), [
+        $this->get(route('login'))
+            ->assertOk()
+            ->assertDontSee('Daftar')
+            ->assertDontSee('Register')
+            ->assertDontSee('/register');
+
+        $this->get('/register')->assertNotFound();
+
+        $this->post('/register', [
             'name' => 'Eco User',
             'email' => 'new@example.test',
-            'password' => 'a-long-password',
-            'password_confirmation' => 'a-long-password',
-        ]);
+            'password' => 'Strong-Password-123!',
+            'password_confirmation' => 'Strong-Password-123!',
+            'role' => 'admin',
+        ])->assertNotFound();
 
-        $response->assertRedirect(route('user.dashboard'));
-        $this->assertAuthenticated();
-        $this->assertDatabaseHas('users', [
-            'email' => 'new@example.test',
-            'role' => 'user',
-        ]);
+        $this->assertDatabaseMissing('users', ['email' => 'new@example.test']);
+        $this->assertGuest();
     }
 
-    public function test_registration_cannot_assign_admin_role(): void
+    public function test_admin_can_login_with_valid_credentials(): void
     {
-        $this->post(route('register.store'), [
-            'name' => 'Untrusted Role',
-            'email' => 'role@example.test',
-            'password' => 'a-long-password',
-            'password_confirmation' => 'a-long-password',
-            'role' => 'admin',
-        ])->assertRedirect(route('user.dashboard'));
+        $admin = User::factory()->create()->forceFill(['role' => 'admin']);
+        $admin->save();
 
-        $this->assertDatabaseHas('users', [
-            'email' => 'role@example.test',
-            'role' => 'user',
-        ]);
+        $this->post(route('login.store'), [
+            'email' => $admin->email,
+            'password' => 'password',
+        ])->assertRedirect(route('admin.dashboard'));
+
+        $this->assertAuthenticatedAs($admin);
     }
 
     public function test_admin_can_access_admin_dashboard(): void
