@@ -20,13 +20,17 @@
             <div class="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
                 <div>
                     <h2 class="font-display text-base font-semibold text-slate-900">Ikhtisar Laporan Sampah</h2>
-                    <p class="mt-0.5 text-xs text-slate-500">Laporan masuk dan selesai/ditolak dalam tujuh hari terakhir</p>
+                    <p class="mt-0.5 text-xs text-slate-500">Laporan masuk dan selesai/ditolak {{ $period === 'monthly' ? 'bulan berjalan' : 'tujuh hari terakhir' }}</p>
                 </div>
-                <span class="rounded-lg bg-slate-100 px-3 py-2 text-[11px] font-semibold text-slate-600">7 Hari Terakhir</span>
+                <nav class="flex gap-2 text-xs" aria-label="Periode grafik">
+                    @foreach(['weekly' => 'Mingguan', 'monthly' => 'Bulanan'] as $value => $label)
+                        <a href="{{ route('admin.dashboard', ['period' => $value]) }}" @class(['rounded-lg px-3 py-2 font-semibold transition-colors focus-visible:outline-2 focus-visible:outline-emerald-600', 'bg-emerald-100 text-emerald-800' => $period === $value, 'bg-slate-100 text-slate-500 hover:text-emerald-700' => $period !== $value]) @if($period === $value) aria-current="true" @endif>{{ $label }}</a>
+                    @endforeach
+                </nav>
             </div>
 
             <div class="mt-5 h-60 w-full sm:h-64">
-                <svg class="h-full w-full" viewBox="0 0 700 240" role="img" aria-label="Grafik laporan masuk dan tertangani selama tujuh hari terakhir">
+                <svg data-line-chart class="h-full w-full" viewBox="0 0 700 240" role="group" aria-label="Grafik laporan masuk dan tertangani">
                     <defs>
                         <linearGradient id="reportArea" x1="0" x2="0" y1="0" y2="1">
                             <stop offset="0%" stop-color="#10b981" stop-opacity=".22" />
@@ -53,11 +57,9 @@
                     <path d="{{ $handledLine }}" fill="none" stroke="#005ac2" stroke-dasharray="4 5" stroke-width="2.5" />
                     <path d="{{ $reportLine }}" fill="none" stroke="#10b981" stroke-width="3" />
                     @foreach($chartDays as $day)
-                        <circle cx="{{ $day['x'] }}" cy="{{ $day['reportY'] }}" r="4" fill="#10b981" stroke="#fff" stroke-width="2">
-                            <title>{{ $day['date'] }}: {{ $day['reports'] }} laporan masuk</title>
+                        <circle tabindex="0" role="img" data-chart-point data-date="{{ $day['date'] }}" data-reports="{{ $day['reports'] }}" data-handled="{{ $day['handled'] }}" aria-label="{{ $day['date'] }}: {{ $day['reports'] }} laporan masuk, {{ $day['handled'] }} selesai atau ditolak" cx="{{ $day['x'] }}" cy="{{ $day['reportY'] }}" r="4" fill="#10b981" stroke="#fff" stroke-width="2">
                         </circle>
-                        <circle cx="{{ $day['x'] }}" cy="{{ $day['handledY'] }}" r="3" fill="#005ac2" stroke="#fff" stroke-width="1.5">
-                            <title>{{ $day['date'] }}: {{ $day['handled'] }} laporan tertangani</title>
+                        <circle tabindex="0" role="img" data-chart-point data-date="{{ $day['date'] }}" data-reports="{{ $day['reports'] }}" data-handled="{{ $day['handled'] }}" aria-label="{{ $day['date'] }}: {{ $day['reports'] }} laporan masuk, {{ $day['handled'] }} selesai atau ditolak" cx="{{ $day['x'] }}" cy="{{ $day['handledY'] }}" r="3" fill="#005ac2" stroke="#fff" stroke-width="1.5">
                         </circle>
                     @endforeach
                     <g fill="#82908a" font-size="11" font-family="Inter, sans-serif" text-anchor="middle">
@@ -65,7 +67,9 @@
                             <text x="{{ $day['x'] }}" y="215">{{ $day['label'] }}</text>
                         @endforeach
                     </g>
+                    @if($period === 'monthly')<text x="350" y="237" text-anchor="middle" font-size="11" fill="#047857" font-family="Inter, sans-serif" font-weight="600">{{ $chartMonth }}</text>@endif
                 </svg>
+                <div data-chart-tooltip role="tooltip" hidden class="dashboard-chart-tooltip"></div>
             </div>
 
             <div class="mt-4 flex flex-wrap items-center justify-between gap-3 border-t border-slate-100 pt-3 text-[11px] text-slate-500">
@@ -84,20 +88,22 @@
             </div>
 
             <div class="relative mx-auto my-5 flex h-44 w-44 items-center justify-center">
-                <svg class="h-full w-full -rotate-90" viewBox="0 0 120 120" role="img" aria-label="Distribusi kategori berdasarkan jumlah laporan tersimpan">
+                <svg class="h-full w-full -rotate-90" viewBox="0 0 120 120" role="group" aria-label="Distribusi kategori berdasarkan jumlah laporan tersimpan">
                     <circle cx="60" cy="60" r="48" fill="none" stroke="#eff4ff" stroke-width="14" />
                     @foreach($categoryDistribution as $category)
                         @if($category['total'] > 0)
-                            <circle cx="60" cy="60" r="48" fill="none" stroke="{{ $category['color'] }}" stroke-width="14" stroke-dasharray="{{ $category['dasharray'] }}" stroke-dashoffset="{{ $category['dashoffset'] }}" />
+                            <circle tabindex="0" role="button" aria-pressed="false" data-donut-category data-label="{{ $category['label'] }}" data-total="{{ $category['total'] }}" data-percent="{{ $category['percent'] }}" aria-label="{{ $category['label'] }}: {{ $category['total'] }} laporan ({{ $category['percent'] }}%)" style="pointer-events: stroke; cursor: pointer" cx="60" cy="60" r="48" fill="none" stroke="{{ $category['color'] }}" stroke-width="14" stroke-dasharray="{{ $category['dasharray'] }}" stroke-dashoffset="{{ $category['dashoffset'] }}" />
                         @endif
                     @endforeach
                 </svg>
-                <div class="absolute inset-0 flex flex-col items-center justify-center">
-                    <span class="font-display text-2xl font-bold tracking-tight text-slate-900">{{ number_format($categoryTotal, 0, ',', '.') }}</span>
-                    <span class="text-[11px] text-slate-500">Laporan berkategori</span>
+                <div class="pointer-events-none absolute inset-0 flex flex-col items-center justify-center">
+                    <span data-donut-total class="font-display text-2xl font-bold tracking-tight text-slate-900">{{ number_format($categoryTotal, 0, ',', '.') }}</span>
+                    <span data-donut-label class="text-center text-[11px] text-slate-500">Laporan berkategori</span>
                 </div>
             </div>
 
+            <button type="button" data-donut-reset class="text-xs text-emerald-700">Tampilkan total laporan</button>
+            <div data-donut-detail role="tooltip" hidden class="dashboard-chart-tooltip"></div>
             <div class="mt-auto space-y-1">
                 @foreach($categoryDistribution as $category)
                     <div class="flex items-center justify-between rounded-lg px-2 py-2 text-xs">

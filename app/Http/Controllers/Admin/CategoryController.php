@@ -7,6 +7,7 @@ use App\Http\Requests\StoreCategoryRequest;
 use App\Http\Requests\UpdateCategoryRequest;
 use App\Models\WasteCategory;
 use App\Models\WasteReport;
+use App\Support\ReportLabels;
 use Illuminate\Contracts\View\View;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Support\Facades\DB;
@@ -26,7 +27,11 @@ class CategoryController extends Controller
                 $query->where(function ($query) use ($search): void {
                     $query->where('name', 'like', "%{$search}%")
                         ->orWhere('slug', 'like', "%{$search}%")
-                        ->orWhere('description', 'like', "%{$search}%");
+                        ->orWhere('description', 'like', "%{$search}%")
+                        ->orWhereIn('slug', array_keys(array_filter(
+                            ReportLabels::CATEGORIES,
+                            fn (string $label): bool => Str::contains($label, $search, ignoreCase: true),
+                        )));
                 });
             })
             ->orderBy('name')

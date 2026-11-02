@@ -104,3 +104,8 @@ Jelaskan keputusan arsitektur yang penting agar developer dapat memahami dan mem
 - Jangan mengubah file konfigurasi testing sebelum menjelaskan alasannya.
 - Jangan menggunakan `migrate:fresh` terhadap database development.
 - Jangan menghapus test yang sudah ada.
+
+## Skill wajib setiap sesi dan perubahan
+
+- Wajib gunakan `lean-code`, `project-context`, dan `planning` pada setiap sesi dan sebelum perubahan; baca SKILL.md masing-masing jika belum dibaca dalam konteks sesi.
+- Pilih rencana singkat untuk tugas kecil, gunakan kembali konteks yang sudah diverifikasi, dan buat perubahan terkecil yang memenuhi kebutuhan.

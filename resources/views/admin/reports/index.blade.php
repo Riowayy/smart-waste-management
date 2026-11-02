@@ -25,7 +25,7 @@
                 <select id="category" name="category" class="field-control w-full">
                     <option value="">Semua kategori</option>
                     @foreach($categories as $category)
-                        <option value="{{ $category->id }}" @selected((string) request('category') === (string) $category->id)>{{ $category->name }}</option>
+                        <option value="{{ $category->id }}" @selected((string) request('category') === (string) $category->id)>{{ \App\Support\ReportLabels::category($category) }}</option>
                     @endforeach
                 </select>
             </div>
@@ -51,7 +51,7 @@
                         <tr class="hover:bg-slate-50">
                             <td class="px-5 py-4 font-mono text-xs font-semibold text-emerald-800">#{{ $report->id }}</td>
                             <td class="px-4 py-4"><span class="block font-medium">{{ $report->user->name }}</span><span class="text-xs text-slate-500">{{ $report->user->email }}</span></td>
-                            <td class="px-4 py-4">{{ $report->category?->name ?? '—' }}</td>
+                            <td class="px-4 py-4">{{ \App\Support\ReportLabels::category($report->category) }}</td>
                             <td class="max-w-xs truncate px-4 py-4">{{ $report->description }}</td>
                             <td class="px-4 py-4"><x-admin.status-badge :status="$report->status" /></td>
                             <td class="px-5 py-4 text-right"><a href="{{ route('admin.reports.show', $report) }}" class="font-semibold text-emerald-800 hover:underline">Detail</a></td>
@@ -62,6 +62,6 @@
                 </tbody>
             </table>
         </div>
-        <div class="border-t border-slate-100 px-5 py-4">{{ $reports->links() }}</div>
+        <div class="border-t border-slate-100 px-5 py-4">{{ $reports->links('admin.reports._pagination') }}</div>
     </section>
 @endsection

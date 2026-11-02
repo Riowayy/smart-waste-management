@@ -7,11 +7,12 @@ use App\Models\WasteCategory;
 use App\Models\WasteReport;
 use Carbon\CarbonImmutable;
 use Illuminate\Support\Collection;
+use Illuminate\Http\Request;
 use Illuminate\View\View;
 
 class DashboardController extends Controller
 {
-    public function index(): View
+    public function index(Request $request): View
     {
         $statistics = WasteReport::query()
             ->selectRaw('COUNT(*) as total_reports')
@@ -48,8 +49,9 @@ class DashboardController extends Controller
             return $category;
         });
 
-        $startDate = CarbonImmutable::today()->subDays(6);
-        $endDate = CarbonImmutable::today()->endOfDay();
+        $period = $request->query('period') === 'monthly' ? 'monthly' : 'weekly';
+        $startDate = $period === 'monthly' ? CarbonImmutable::today()->startOfMonth() : CarbonImmutable::today()->subDays(6);
+        $endDate = $period === 'monthly' ? $startDate->endOfMonth() : CarbonImmutable::today()->endOfDay();
         $dailyReports = WasteReport::query()
             ->whereBetween('created_at', [$startDate, $endDate])
             ->selectRaw('DATE(created_at) as report_date, COUNT(*) as total')
@@ -58,13 +60,13 @@ class DashboardController extends Controller
             ->get()
             ->keyBy('report_date');
 
-        $chartDays = collect(range(0, 6))->map(function (int $dayOffset) use ($startDate, $dailyReports): array {
+        $chartDays = collect(range(0, (int) $startDate->diffInDays($endDate->startOfDay())))->map(function (int $dayOffset) use ($startDate, $dailyReports, $period): array {
             $date = $startDate->addDays($dayOffset);
             $row = $dailyReports->get($date->toDateString());
 
             return [
                 'date' => $date->toDateString(),
-                'label' => $date->locale('id')->translatedFormat('D'),
+                'label' => $date->locale('id')->translatedFormat($period === 'monthly' ? 'j' : 'D'),
                 'reports' => (int) ($row?->total ?? 0),
                 'handled' => (int) ($row?->handled ?? 0),
             ];
@@ -72,8 +74,8 @@ class DashboardController extends Controller
 
         $observedMax = $chartDays->max(fn (array $day): int => max($day['reports'], $day['handled']));
         $chartMax = max(3, (int) (ceil($observedMax / 3) * 3));
-        $chartDays = $chartDays->map(function (array $day, int $index) use ($chartMax): array {
-            $day['x'] = round(50 + ($index * (620 / 6)), 2);
+        $chartDays = $chartDays->map(function (array $day, int $index) use ($chartMax, $chartDays): array {
+            $day['x'] = round(50 + ($index * (620 / max(1, $chartDays->count() - 1))), 2);
             $day['reportY'] = round(190 - (($day['reports'] / $chartMax) * 155), 2);
             $day['handledY'] = round(190 - (($day['handled'] / $chartMax) * 155), 2);
 
@@ -100,6 +102,8 @@ class DashboardController extends Controller
             'categoryDistribution' => $categoryDistribution,
             'categoryTotal' => $categoryTotal,
             'chartDays' => $chartDays,
+            'period' => $period,
+            'chartMonth' => $startDate->locale('id')->translatedFormat('F Y'),
             'chartMax' => $chartMax,
             'chartTicks' => $chartTicks,
             'reportLine' => $reportLine,

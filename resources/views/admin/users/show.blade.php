@@ -4,6 +4,7 @@
 
 @section('content')
     <div class="space-y-6">
+        @include('admin.users._breadcrumb', ['currentPage' => 'Detail Pengguna'])
 
         @if (session('status'))
             <div class="rounded-lg border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-900" role="status">{{ session('status') }}</div>
@@ -84,9 +85,5 @@
             @endif
         </section>
 
-        <a href="{{ route('admin.users.index') }}" class="inline-flex min-h-10 items-center gap-2 rounded-lg px-2 text-sm font-semibold text-slate-600 transition-colors hover:bg-slate-100 hover:text-slate-900 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-emerald-700">
-            <x-icon name="chevron-left" class="size-4" />
-            Kembali ke Manajemen Pengguna
-        </a>
     </div>
 @endsection

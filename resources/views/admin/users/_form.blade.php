@@ -34,7 +34,7 @@
             @if ($isSelfEdit)
                 <input type="hidden" name="role" value="{{ $user->role }}">
             @endif
-            <select id="role" name="{{ $isSelfEdit ? 'role_display' : 'role' }}" @unless ($isSelfEdit) required @else disabled aria-describedby="role-help" @endunless class="field-control w-full disabled:cursor-not-allowed disabled:bg-slate-100 disabled:text-slate-500" @if ($errors->has('role')) aria-invalid="true" aria-describedby="role-error" @endif>
+            <select id="role" name="{{ $isSelfEdit ? 'role_display' : 'role' }}" @unless ($isSelfEdit) required @else disabled aria-describedby="role-help" @endunless class="field-control w-full" @if ($errors->has('role')) aria-invalid="true" aria-describedby="role-error" @endif>
                 <option value="user" @selected(old('role', $user->role ?? 'user') === 'user')>User</option>
                 <option value="admin" @selected(old('role', $user->role ?? 'user') === 'admin')>Admin</option>
             </select>
@@ -44,8 +44,8 @@
 
         <div>
             <label for="password" class="mb-1.5 block text-sm font-medium text-slate-700">{{ $editing ? 'Password baru (opsional)' : 'Password' }} @unless ($editing)<span class="text-rose-700" aria-hidden="true">*</span><span class="sr-only">wajib diisi</span>@endunless</label>
-            <input id="password" name="password" type="password" @required(! $editing) minlength="12" autocomplete="new-password" placeholder="{{ $editing ? 'Kosongkan jika tidak diganti' : 'Buat password yang kuat' }}" class="field-control w-full" @if ($errors->has('password')) aria-invalid="true" aria-describedby="password-help password-error" @else aria-describedby="password-help" @endif>
-            <p id="password-help" class="mt-1.5 text-xs leading-5 text-slate-500">Minimal 12 karakter, huruf besar dan kecil, angka, serta simbol.</p>
+            <input id="password" name="password" type="password" @required(! $editing) minlength="6" autocomplete="new-password" placeholder="{{ $editing ? 'Kosongkan jika tidak diganti' : 'Minimal 6 karakter' }}" class="field-control w-full" @if ($errors->has('password')) aria-invalid="true" aria-describedby="password-help password-error" @else aria-describedby="password-help" @endif>
+            <p id="password-help" class="mt-1.5 text-xs leading-5 text-slate-500">Minimal 6 karakter.</p>
             @error('password')<p id="password-error" class="mt-1.5 text-sm text-rose-700">{{ $message }}</p>@enderror
         </div>
 

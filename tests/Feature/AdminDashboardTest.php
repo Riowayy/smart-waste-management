@@ -129,6 +129,23 @@ class AdminDashboardTest extends TestCase
         $this->actingAs($user)->get(route('admin.dashboard'))->assertForbidden();
     }
 
+    public function test_monthly_chart_covers_entire_current_month_with_actual_counts(): void
+    {
+        $this->travelTo(Carbon::parse('2026-02-15 12:00:00'));
+        $admin = $this->admin();
+        $this->report($admin, null, 'rejected', Carbon::parse('2026-02-01 10:00:00'));
+        $this->report($admin, null, 'completed', Carbon::parse('2026-01-31 10:00:00'));
+        $response = $this->actingAs($admin)->get(route('admin.dashboard', ['period' => 'monthly']));
+        $response->assertOk()->assertSee('Februari 2026')->assertSee('data-chart-point', false);
+        $days = $response->viewData('chartDays');
+        $this->assertCount(28, $days);
+        $this->assertSame('2026-02-01', $days->first()['date']);
+        $this->assertSame('2026-02-28', $days->last()['date']);
+        $this->assertSame(1, $days->first()['reports']);
+        $this->assertSame(1, $days->first()['handled']);
+        $this->assertSame(0, $days->last()['reports']);
+    }
+
     private function admin(): User
     {
         $admin = User::factory()->create()->forceFill(['role' => 'admin']);

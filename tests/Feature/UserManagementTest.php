@@ -80,22 +80,22 @@ class UserManagementTest extends TestCase
             ->post(route('admin.users.store'), [
                 'name' => 'New Eco User',
                 'email' => 'new-user@example.test',
-                'password' => 'Secure-Password-123!',
-                'password_confirmation' => 'Secure-Password-123!',
+                'password' => 'abcdef',
+                'password_confirmation' => 'abcdef',
             ])
             ->assertRedirect();
 
         $user = User::query()->where('email', 'new-user@example.test')->firstOrFail();
         $this->assertSame('user', $user->role);
-        $this->assertTrue(Hash::check('Secure-Password-123!', $user->password));
-        $this->assertNotSame('Secure-Password-123!', $user->password);
+        $this->assertTrue(Hash::check('abcdef', $user->password));
+        $this->assertNotSame('abcdef', $user->password);
 
         $this->post(route('logout'))
             ->assertRedirect(route('login'));
 
         $this->post(route('login.store'), [
             'email' => $user->email,
-            'password' => 'Secure-Password-123!',
+            'password' => 'abcdef',
         ])->assertRedirect(route('user.dashboard'));
 
         $this->assertAuthenticatedAs($user);
@@ -224,6 +224,117 @@ class UserManagementTest extends TestCase
 
         $this->assertDatabaseHas('users', ['id' => $user->id]);
         $this->assertDatabaseHas('waste_reports', ['id' => $report->id, 'user_id' => $user->id]);
+    }
+
+    public function test_user_pages_show_breadcrumb_before_heading(): void
+    {
+        $user = User::factory()->create();
+        $this->actingAs($this->admin());
+
+        foreach ([
+            route('admin.users.show', $user) => 'Detail Pengguna',
+            route('admin.users.create') => 'Tambah Pengguna',
+            route('admin.users.edit', $user) => 'Edit Pengguna',
+        ] as $url => $title) {
+            $response = $this->get($url)->assertOk();
+            $response->assertSeeInOrder([
+                'aria-label="Breadcrumb"',
+                'href="'.route('admin.users.index').'"',
+                'aria-current="page">'.$title,
+                '<h1',
+            ], false)->assertDontSee('Kembali ke Manajemen Pengguna');
+
+            if ($title !== 'Detail Pengguna') {
+                $response->assertSee('minlength="6"', false)->assertSee('Minimal 6 karakter');
+            }
+        }
+    }
+
+    public function test_admin_can_update_to_six_character_password_and_leave_it_unchanged_when_blank(): void
+    {
+        $user = User::factory()->create();
+        $this->actingAs($this->admin());
+        $data = ['name' => $user->name, 'email' => $user->email, 'role' => 'user'];
+
+        $this->put(route('admin.users.update', $user), $data + [
+            'password' => 'abcdef', 'password_confirmation' => 'abcdef',
+        ])->assertSessionHasNoErrors()->assertRedirect(route('admin.users.show', $user));
+        $this->assertTrue(Hash::check('abcdef', $user->refresh()->password));
+        $hash = $user->password;
+
+        $this->put(route('admin.users.update', $user), $data + [
+            'password' => '', 'password_confirmation' => '',
+        ])->assertSessionHasNoErrors()->assertRedirect(route('admin.users.show', $user));
+        $this->assertSame($hash, $user->refresh()->password);
+    }
+
+    public function test_create_and_update_reject_short_or_unconfirmed_passwords(): void
+    {
+        $user = User::factory()->create();
+        $this->actingAs($this->admin());
+        $hash = $user->password;
+
+        foreach ([
+            ['12345', '12345', 'Password harus diisi minimal 6 karakter.'],
+            ['abcdef', 'different', 'Konfirmasi password tidak sesuai.'],
+            ['abcdef', '', 'Konfirmasi password tidak sesuai.'],
+        ] as [$password, $confirmation, $message]) {
+            $this->post(route('admin.users.store'), [
+                'name' => 'Invalid Password', 'email' => 'invalid-password@example.test',
+                'password' => $password, 'password_confirmation' => $confirmation,
+            ])->assertSessionHasErrors(['password' => $message]);
+            $this->assertDatabaseMissing('users', ['email' => 'invalid-password@example.test']);
+
+            $this->put(route('admin.users.update', $user), [
+                'name' => $user->name, 'email' => $user->email, 'role' => 'user',
+                'password' => $password, 'password_confirmation' => $confirmation,
+            ])->assertSessionHasErrors(['password' => $message]);
+            $this->assertSame($hash, $user->refresh()->password);
+        }
+    }
+
+    public function test_user_validation_messages_are_indonesian_in_summary_and_fields(): void
+    {
+        $existing = User::factory()->create();
+        $this->actingAs($this->admin());
+        $data = ['name' => '', 'email' => $existing->email, 'role' => 'invalid',
+            'password' => '12345', 'password_confirmation' => '12345'];
+
+        $this->from(route('admin.users.create'))->post(route('admin.users.store'), $data)
+            ->assertSessionHasErrors([
+                'name' => 'Nama lengkap wajib diisi.',
+                'email' => 'Email sudah digunakan.',
+                'role' => 'Role yang dipilih tidak valid.',
+                'password' => 'Password harus diisi minimal 6 karakter.',
+            ]);
+        $response = $this->withCookie(config('session.cookie'), session()->getId())
+            ->get(route('admin.users.create'))->assertOk();
+        $this->assertSame(2, substr_count($response->getContent(), 'Password harus diisi minimal 6 karakter.'));
+        $response->assertSee('Periksa kembali data berikut:')->assertSee('novalidate', false)
+            ->assertDontSee('huruf besar dan kecil');
+
+        $this->put(route('admin.users.update', $existing), $data)
+            ->assertSessionHasErrors(['name' => 'Nama lengkap wajib diisi.', 'role' => 'Role yang dipilih tidak valid.']);
+        $this->post(route('admin.users.store'), array_replace($data, ['email' => 'invalid-email']))
+            ->assertSessionHasErrors(['email' => 'Format email tidak valid.']);
+    }
+
+    public function test_numeric_password_is_accepted_and_web_locale_does_not_change_api_validation(): void
+    {
+        $this->actingAs($this->admin());
+        $this->post(route('admin.users.store'), [
+            'name' => 'Numeric Password', 'email' => 'numeric@example.test',
+            'password' => '123456', 'password_confirmation' => '123456',
+        ])->assertSessionHasNoErrors()->assertRedirect();
+        $user = User::where('email', 'numeric@example.test')->firstOrFail();
+        $this->assertTrue(Hash::check('123456', $user->password));
+
+        app()->setLocale('en');
+        $this->get(route('admin.categories.index', ['search' => ['invalid']]))
+            ->assertSessionHasErrors(['search' => 'Kata pencarian harus berupa teks.']);
+        $this->assertSame('en', app()->getLocale());
+        $this->postJson('/api/v1/auth/register', [])
+            ->assertUnprocessable()->assertJsonPath('errors.name.0', 'The name field is required.');
     }
 
     private function admin(): User

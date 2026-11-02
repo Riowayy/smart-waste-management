@@ -8,7 +8,7 @@
 <section class="dashboard-card space-y-5 p-5 sm:p-6" aria-label="Informasi kategori">
     <div>
         <label for="name" class="mb-1.5 block text-sm font-medium text-slate-700">Nama kategori <span class="text-rose-700">*</span></label>
-        <input id="name" name="name" type="text" value="{{ old('name', $category->name ?? '') }}" required maxlength="255" autocomplete="off" placeholder="Contoh: Organic Waste" class="field-control w-full" @if($errors->has('name')) aria-invalid="true" aria-describedby="name-error" @endif>
+        <input id="name" name="name" type="text" value="{{ old('name', $category->name ?? '') }}" required maxlength="255" autocomplete="off" placeholder="Contoh: Sampah Organik" class="field-control w-full" @if($errors->has('name')) aria-invalid="true" aria-describedby="name-error" @endif>
         @error('name')<p id="name-error" class="mt-1.5 text-sm text-rose-700" role="alert">{{ $message }}</p>@enderror
         <p class="mt-1.5 text-xs text-slate-500">Nama kategori harus unik. Slug dibuat otomatis dari nama.</p>
     </div>

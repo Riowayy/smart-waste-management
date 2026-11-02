@@ -37,7 +37,7 @@
             <x-auth.field label="Email" name="email" type="email" autocomplete="email" inputmode="email" class="login-input" />
             <x-auth.field label="Password" name="password" type="password" autocomplete="current-password" class="login-input" />
             <label class="login-remember flex w-fit cursor-pointer items-center gap-2 text-sm">
-                <input type="checkbox" name="remember" value="1" class="size-4 rounded border-slate-300 text-emerald-800 focus:ring-emerald-700">
+                <input type="checkbox" name="remember" value="1" class="field-choice">
                 Ingat saya
             </label>
             <button type="submit" class="login-submit w-full rounded-lg px-4 py-3 text-sm font-semibold text-white focus-visible:outline-2 focus-visible:outline-offset-2">Masuk</button>

@@ -1,3 +1,5 @@
+import './user-reports';
+
 document.addEventListener('DOMContentLoaded', () => {
     const sidebar = document.getElementById('adminSidebar');
     const overlay = document.getElementById('sidebarOverlay');
@@ -10,7 +12,8 @@ document.addEventListener('DOMContentLoaded', () => {
     const sidebarClockDate = document.querySelector('[data-clock-date]');
     const sidebarClockTime = document.querySelector('[data-clock-time]');
     const desktopMedia = window.matchMedia('(min-width: 1024px)');
-    const sidebarStorageKey = 'ecotrack.adminSidebar.collapsed';
+    const isUserPortal = document.body.classList.contains('user-portal');
+    const sidebarStorageKey = document.documentElement.dataset.sidebarStorage || 'ecotrack.adminSidebar.collapsed';
 
     const setMobileToggleState = (expanded) => {
         sidebarToggle?.setAttribute('aria-expanded', String(expanded));
@@ -26,6 +29,7 @@ document.addEventListener('DOMContentLoaded', () => {
     };
 
     const setDesktopCollapsed = (collapsed, persist = true) => {
+        if (isUserPortal && sidebar) sidebar.inert = false;
         document.documentElement.classList.toggle('sidebar-collapsed', collapsed);
         sidebarClock?.setAttribute('tabindex', collapsed ? '0' : '-1');
         sidebarCollapseButton?.setAttribute('aria-expanded', String(!collapsed));
@@ -99,13 +103,19 @@ document.addEventListener('DOMContentLoaded', () => {
     });
 
     const openMobileSidebar = () => {
+        if (isUserPortal && sidebar) sidebar.inert = false;
         sidebar?.classList.add('is-open');
         overlay?.classList.add('is-visible');
         document.body.classList.add('overflow-hidden');
         setMobileToggleState(true);
+        if (isUserPortal) sidebarNavigationLinks[0]?.focus();
     };
 
     const closeMobileSidebar = () => {
+        if (isUserPortal && sidebar) {
+            if (sidebar.contains(document.activeElement)) sidebarToggle?.focus();
+            sidebar.inert = true;
+        }
         sidebar?.classList.remove('is-open');
         overlay?.classList.remove('is-visible');
         document.body.classList.remove('overflow-hidden');
@@ -193,18 +203,84 @@ document.addEventListener('DOMContentLoaded', () => {
     searchInput?.addEventListener('input', filterReports);
     categoryFilter?.addEventListener('change', filterReports);
 
-    // Period buttons are visual controls until the dashboard chart is connected to live data.
-    document.querySelectorAll('[data-period-button]').forEach((button) => {
-        button.addEventListener('click', () => {
-            document.querySelectorAll('[data-period-button]').forEach((item) => {
-                item.classList.remove('bg-white', 'text-slate-900', 'shadow-sm');
-                item.classList.add('text-slate-500');
-                item.setAttribute('aria-pressed', 'false');
-            });
+    // Fixed tooltips live under body so card overflow cannot clip them.
+    const positionTooltip = (tooltip, x, y) => {
+        tooltip.hidden = false;
+        const bounds = tooltip.getBoundingClientRect();
+        tooltip.style.left = `${Math.max(8, Math.min(x + 12, innerWidth - bounds.width - 8))}px`;
+        tooltip.style.top = `${Math.max(8, Math.min(innerHeight - bounds.height - 8, y - bounds.height - 12 < 8 ? y + 12 : y - bounds.height - 12))}px`;
+    };
+    const chartTooltip = document.querySelector('[data-chart-tooltip]');
+    const chart = document.querySelector('[data-line-chart]');
+    const points = [...document.querySelectorAll('[data-chart-point]')];
+    let activePoint = null;
+    if (chartTooltip) document.body.append(chartTooltip);
+    const hideChartTooltip = () => {
+        if (chartTooltip) chartTooltip.hidden = true;
+        points.forEach((point) => point.setAttribute('r', point.dataset.radius));
+        activePoint = null;
+    };
+    const showPoint = (point) => {
+        hideChartTooltip();
+        activePoint = point;
+        const date = new Date(`${point.dataset.date}T12:00:00`);
+        const formattedDate = new Intl.DateTimeFormat('id-ID', { day: 'numeric', month: 'long', year: 'numeric' }).format(date);
+        chartTooltip.textContent = `${formattedDate}\nLaporan masuk: ${point.dataset.reports}\nSelesai atau ditolak: ${point.dataset.handled}`;
+        points.filter((item) => item.dataset.date === point.dataset.date).forEach((item) => item.setAttribute('r', '6'));
+        const rect = point.getBoundingClientRect();
+        positionTooltip(chartTooltip, rect.x + rect.width / 2, rect.y + rect.height / 2);
+    };
+    points.forEach((point) => {
+        point.dataset.radius = point.getAttribute('r');
+        point.addEventListener('focus', () => showPoint(point));
+        point.addEventListener('blur', hideChartTooltip);
+        point.addEventListener('keydown', (event) => { if (event.key === 'Escape') hideChartTooltip(); });
+    });
+    chart?.addEventListener('pointermove', (event) => {
+        const nearest = points.reduce((best, point) => {
+            const rect = point.getBoundingClientRect();
+            const distance = Math.abs(event.clientX - rect.x - rect.width / 2);
+            return !best || distance < best.distance ? { point, distance } : best;
+        }, null);
+        if (nearest && activePoint !== nearest.point) showPoint(nearest.point);
+    });
+    chart?.addEventListener('pointerleave', hideChartTooltip);
 
-            button.classList.add('bg-white', 'text-slate-900', 'shadow-sm');
-            button.classList.remove('text-slate-500');
-            button.setAttribute('aria-pressed', 'true');
+    const segments = [...document.querySelectorAll('[data-donut-category]')];
+    const total = document.querySelector('[data-donut-total]');
+    const label = document.querySelector('[data-donut-label]');
+    const detail = document.querySelector('[data-donut-detail]');
+    if (detail) document.body.append(detail);
+    const originalTotal = total?.textContent;
+    let selected = null;
+    const displayCategory = (segment) => {
+        if (!total) return;
+        total.textContent = segment ? Number(segment.dataset.total).toLocaleString('id-ID') : originalTotal;
+        label.textContent = segment ? segment.dataset.label : 'Laporan berkategori';
+
+        segments.forEach((item) => item.setAttribute('aria-pressed', String(item === selected)));
+    };
+    segments.forEach((segment) => {
+        const showTooltip = (event) => {
+            displayCategory(segment);
+            detail.textContent = `${segment.dataset.label}\nJumlah laporan: ${segment.dataset.total}\nPersentase: ${segment.dataset.percent}%`;
+            const rect = segment.ownerSVGElement.getBoundingClientRect();
+            positionTooltip(detail, event.clientX ?? rect.right, event.clientY ?? rect.top + rect.height / 2);
+        };
+        segment.addEventListener('pointermove', showTooltip);
+        segment.addEventListener('pointerleave', () => { detail.hidden = true; displayCategory(selected); });
+        segment.addEventListener('focus', showTooltip);
+        segment.addEventListener('blur', () => { detail.hidden = true; displayCategory(selected); });
+        segment.addEventListener('click', () => {
+            selected = selected === segment ? null : segment;
+            displayCategory(selected);
+        });
+        segment.addEventListener('keydown', (event) => {
+            if (event.key === 'Enter' || event.key === ' ') { event.preventDefault(); segment.dispatchEvent(new Event('click')); }
+            if (event.key === 'Escape') { selected = null; detail.hidden = true; displayCategory(null); }
         });
     });
+    window.addEventListener('scroll', () => { hideChartTooltip(); if (detail) detail.hidden = true; }, true);
+    window.addEventListener('resize', () => { hideChartTooltip(); if (detail) detail.hidden = true; });
+    document.querySelector('[data-donut-reset]')?.addEventListener('click', () => { selected = null; displayCategory(null); });
 });

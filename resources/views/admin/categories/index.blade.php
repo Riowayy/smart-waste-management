@@ -48,7 +48,7 @@
                     <label for="category-search" class="sr-only">Cari kategori</label>
                     <div class="relative min-w-0 flex-1">
                         <x-icon name="search" class="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-slate-400" />
-                        <input id="category-search" name="search" type="search" value="{{ request('search') }}" placeholder="Cari nama, slug, atau deskripsi" class="field-control w-full pl-9" autocomplete="off">
+                        <input id="category-search" name="search" type="search" value="{{ request('search') }}" placeholder="Cari nama atau deskripsi" class="field-control w-full pl-9" autocomplete="off">
                     </div>
                     <button type="submit" class="min-h-10 rounded-lg border border-slate-200 px-3 text-sm font-semibold text-slate-700 transition-colors hover:bg-slate-50 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-emerald-700">Cari</button>
                     @if (request()->filled('search'))
@@ -84,6 +84,7 @@
                         <tbody class="divide-y divide-slate-100 text-slate-700">
                             @foreach ($categories as $category)
                                 @php
+                                    $categoryLabel = \App\Support\ReportLabels::category($category);
                                     $categoryIcon = match ($category->slug) {
                                         'organic-waste' => 'leaf',
                                         'plastic-waste' => 'recycle',
@@ -96,8 +97,7 @@
                                         <div class="flex items-start gap-3">
                                             <x-icon :name="$categoryIcon" class="mt-0.5 size-5 shrink-0 text-emerald-700" />
                                             <div class="min-w-0">
-                                                <p class="font-semibold text-slate-900">{{ $category->name }}</p>
-                                                <p class="mt-0.5 font-mono text-xs text-slate-500">{{ $category->slug }}</p>
+                                                <p class="font-semibold text-slate-900">{{ $categoryLabel }}</p>
                                             </div>
                                         </div>
                                     </th>
@@ -111,13 +111,13 @@
                                     <td class="whitespace-nowrap px-4 py-4 text-slate-600">{{ $category->created_at?->locale('id')->translatedFormat('j F Y') ?? '—' }}</td>
                                     <td class="px-5 py-4">
                                         <div class="flex items-center justify-end gap-2">
-                                            <a href="{{ route('admin.categories.edit', $category) }}" aria-label="Edit {{ $category->name }}" class="inline-flex size-9 items-center justify-center rounded-lg text-slate-600 transition-colors hover:bg-emerald-50 hover:text-emerald-800 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-emerald-700" title="Edit kategori">
+                                            <a href="{{ route('admin.categories.edit', $category) }}" aria-label="Edit {{ $categoryLabel }}" class="inline-flex size-9 items-center justify-center rounded-lg text-slate-600 transition-colors hover:bg-emerald-50 hover:text-emerald-800 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-emerald-700" title="Edit kategori">
                                                 <x-icon name="pencil" class="size-4" />
                                             </a>
-                                            <form method="POST" action="{{ route('admin.categories.destroy', $category) }}" onsubmit="return confirm(this.dataset.confirm)" data-confirm="Hapus kategori {{ $category->name }}? Kategori yang masih digunakan tidak dapat dihapus.">
+                                            <form method="POST" action="{{ route('admin.categories.destroy', $category) }}" onsubmit="return confirm(this.dataset.confirm)" data-confirm="Hapus kategori {{ $categoryLabel }}? Kategori yang masih digunakan tidak dapat dihapus.">
                                                 @csrf
                                                 @method('DELETE')
-                                                <button type="submit" aria-label="Hapus {{ $category->name }}" class="inline-flex size-9 items-center justify-center rounded-lg text-rose-700 transition-colors hover:bg-rose-50 hover:text-rose-800 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-rose-600" title="Hapus kategori">
+                                                <button type="submit" aria-label="Hapus {{ $categoryLabel }}" class="inline-flex size-9 items-center justify-center rounded-lg text-rose-700 transition-colors hover:bg-rose-50 hover:text-rose-800 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-rose-600" title="Hapus kategori">
                                                     <x-icon name="trash-2" class="size-4" />
                                                 </button>
                                             </form>

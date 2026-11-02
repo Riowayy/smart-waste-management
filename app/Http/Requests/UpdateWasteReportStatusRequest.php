@@ -11,6 +11,16 @@ class UpdateWasteReportStatusRequest extends FormRequest
         return $this->user()?->isAdmin() === true;
     }
 
+    public function messages(): array
+    {
+        return \App\Support\ReportLabels::validationMessages();
+    }
+
+    public function attributes(): array
+    {
+        return \App\Support\ReportLabels::validationAttributes();
+    }
+
     public function rules(): array
     {
         return [

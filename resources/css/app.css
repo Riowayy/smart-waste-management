@@ -75,6 +75,11 @@
     --color-tertiary: #005ac2;
     --color-outline: #6c7a71;
     --color-outline-variant: #bbcabf;
+    --color-field-border: #7c8b85;
+    --color-field-hover: #52685e;
+    --color-field-surface: #f8faf9;
+    --color-field-placeholder: #596b63;
+    --color-field-error: #b91c1c;
 }
 
 @layer base {
@@ -96,14 +101,16 @@
 
     button,
     input,
-    select {
+    select,
+    textarea {
         font: inherit;
     }
 
     button:focus-visible,
     a:focus-visible,
     input:focus-visible,
-    select:focus-visible {
+    select:focus-visible,
+    textarea:focus-visible {
         outline: 2px solid rgba(16, 185, 129, 0.65);
         outline-offset: 2px;
     }
@@ -115,6 +122,68 @@
 }
 
 @layer components {
+    .user-button {
+        @apply inline-flex min-h-11 items-center justify-center gap-2 rounded-lg bg-emerald-700 px-4 py-2.5 text-sm font-semibold text-white hover:bg-emerald-800 disabled:cursor-wait disabled:bg-emerald-800;
+    }
+
+    .user-label {
+        @apply mb-2 block text-sm font-medium text-slate-800;
+    }
+
+    .user-form {
+        @apply min-w-0 rounded-xl border border-slate-200 bg-white p-6;
+    }
+
+    .user-field-error {
+        @apply mt-2 text-sm leading-6 text-red-700;
+    }
+
+    .user-error {
+        @apply rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm leading-6 text-red-800;
+    }
+
+    .user-guide {
+        @apply rounded-xl bg-emerald-50 p-6;
+    }
+
+    .user-overview {
+        @apply grid items-stretch gap-5 md:grid-cols-3;
+    }
+
+    .user-total {
+        @apply flex flex-col justify-between gap-6 rounded-xl border border-emerald-800 bg-emerald-800 p-6 text-white;
+    }
+
+    .user-status-summary {
+        @apply rounded-xl border border-slate-200 bg-white p-6 md:col-span-2;
+    }
+
+    .user-filter {
+        @apply flex flex-wrap items-end gap-4 rounded-xl border border-slate-200 bg-white p-5;
+    }
+
+    .user-timeline {
+        @apply min-w-0 rounded-xl bg-slate-100 p-6;
+    }
+
+    .user-timeline-item {
+        @apply relative border-l border-slate-300 pb-7 pl-5 last:border-transparent last:pb-0;
+    }
+
+    .user-timeline-dot {
+        @apply absolute -left-1 top-1.5 size-2 rounded-full bg-emerald-700;
+    }
+
+    .user-skip-link {
+        @apply fixed left-4 top-4 z-50 -translate-y-24 rounded-lg bg-white px-4 py-3 font-semibold text-emerald-900 focus:translate-y-0 lg:left-64;
+    }
+
+    @media (min-width: 1280px) {
+        .user-dashboard-content {
+            grid-template-columns: minmax(0, 1fr) 15rem;
+        }
+    }
+
     .dashboard-card {
         @apply rounded-xl border border-slate-100 bg-white shadow-sm;
     }
@@ -140,7 +209,139 @@
     }
 
     .field-control {
-        @apply h-10 rounded-lg border border-slate-200 bg-slate-50 px-3 text-sm text-slate-800 placeholder:text-slate-400 transition focus:border-emerald-400 focus:bg-white focus:outline-none focus:ring-2 focus:ring-emerald-100;
+        @apply h-11 min-w-0 rounded-lg px-3 text-sm text-slate-800;
+        border: 2px solid var(--color-field-border);
+        background-color: var(--color-field-surface);
+        transition: border-color 150ms ease, background-color 150ms ease;
+    }
+
+    .field-control::placeholder {
+        color: var(--color-field-placeholder);
+        opacity: 1;
+    }
+
+    .field-control:hover:not(:disabled):not(:focus):not([aria-invalid="true"]) {
+        border-color: var(--color-field-hover);
+        background-color: #fff;
+    }
+
+    .field-control:focus {
+        border-color: var(--color-primary);
+        background-color: #fff;
+        outline: 2px solid var(--color-primary);
+        outline-offset: -2px;
+    }
+
+    .field-control[aria-invalid="true"] {
+        border-color: var(--color-field-error);
+        background-color: #fff7f7;
+    }
+
+    .field-control:disabled {
+        cursor: not-allowed;
+        border-color: #a4afa9;
+        background-color: #e9eeeb;
+        color: #52635b;
+        opacity: 1;
+    }
+
+    textarea.field-control {
+        height: auto;
+        min-height: 6.5rem;
+        padding-block: 0.625rem;
+        resize: vertical;
+    }
+
+    .field-control[type="file"] {
+        height: 2.75rem;
+        min-height: 2.75rem;
+        padding: 0;
+        line-height: calc(2.75rem - 4px);
+    }
+
+    .field-control::file-selector-button {
+        margin-right: 0.75rem;
+        padding: 0 1rem;
+        border: 0;
+        border-right: 1px solid var(--color-field-border);
+        background-color: #e4f2eb;
+        color: #065f46;
+        font: inherit;
+        font-weight: 600;
+        cursor: pointer;
+    }
+
+    .field-control:hover::file-selector-button {
+        background-color: #d1fae5;
+    }
+
+    .field-choice {
+        appearance: none;
+        display: inline-grid;
+        width: 1.125rem;
+        height: 1.125rem;
+        flex-shrink: 0;
+        place-content: center;
+        border: 2px solid var(--color-field-border);
+        border-radius: 0.25rem;
+        background-color: var(--color-field-surface);
+        vertical-align: middle;
+        cursor: pointer;
+        transition: border-color 150ms ease, background-color 150ms ease;
+    }
+
+    .field-choice[type="radio"] {
+        border-radius: 50%;
+    }
+
+    .field-choice:hover:not(:disabled) {
+        border-color: var(--color-field-hover);
+    }
+
+    .field-choice:checked {
+        border-color: var(--color-primary);
+        background-color: var(--color-primary);
+    }
+
+    .field-choice:checked::before {
+        width: 0.3rem;
+        height: 0.6rem;
+        border: solid #fff;
+        border-width: 0 2px 2px 0;
+        content: "";
+        transform: translateY(-1px) rotate(45deg);
+    }
+
+    .field-choice[type="radio"]:checked::before {
+        width: 0.45rem;
+        height: 0.45rem;
+        border: 0;
+        border-radius: 50%;
+        background: #fff;
+        transform: none;
+    }
+
+    .field-choice:focus-visible {
+        outline: 2px solid var(--color-primary);
+        outline-offset: -2px;
+    }
+
+    .field-choice:disabled {
+        cursor: not-allowed;
+        opacity: 0.55;
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+        .field-control,
+        .field-choice {
+            transition: none;
+        }
+    }
+
+    @media (forced-colors: active) {
+        .field-choice {
+            appearance: auto;
+        }
     }
 }
 
@@ -197,14 +398,9 @@ body.login-page::before {
 
 .login-input {
     min-height: 2.75rem;
-    border-color: rgb(148 163 184 / 48%);
-    background-color: rgb(255 255 255 / 76%);
+    border-color: var(--color-field-border);
+    background-color: #f8faf9;
     color: #0b1c30;
-}
-
-.login-input:focus-visible {
-    outline: 2px solid #047857;
-    outline-offset: 2px;
 }
 
 .login-status {
@@ -276,37 +472,57 @@ body.login-page::before {
     }
 
     .login-input {
-        border-color: rgb(255 255 255 / 26%);
-        background-color: rgb(7 43 39 / 20%);
+        border-color: #b4c7bd;
+        background-color: #123e34;
         color: #f8fafc;
         text-shadow: 0 1px 2px rgb(0 24 20 / 48%);
     }
 
     .login-input::placeholder {
-        color: rgb(241 245 249 / 64%);
+        color: #d1dfd8;
     }
 
-    .login-input:focus-visible {
+    .login-input:hover:not(:disabled):not(:focus):not([aria-invalid="true"]) {
+        border-color: #e2eee7;
+        background-color: #194b40;
+    }
+
+    .login-input:focus {
         border-color: #6ee7b7;
         outline-color: #6ee7b7;
-        background-color: rgb(7 43 39 / 28%);
+        background-color: #123e34;
+    }
+
+    .login-input[aria-invalid="true"] {
+        border-color: #fca5a5;
+        background-color: #492b2b;
+    }
+
+    .login-input:disabled {
+        border-color: #8b9f94;
+        background-color: #34483f;
+        color: #cbd8d0;
+    }
+
+    .login-remember .field-choice:focus-visible {
+        outline-color: #6ee7b7;
     }
 
     .login-input:-webkit-autofill,
     .login-input:-webkit-autofill:hover {
         -webkit-text-fill-color: #f8fafc !important;
         caret-color: #f8fafc;
-        -webkit-box-shadow: 0 0 0 1000px rgb(7 43 39 / 20%) inset !important;
-        box-shadow: 0 0 0 1000px rgb(7 43 39 / 20%) inset !important;
-        border-color: rgb(255 255 255 / 26%);
+        -webkit-box-shadow: 0 0 0 1000px #123e34 inset !important;
+        box-shadow: 0 0 0 1000px #123e34 inset !important;
+        border-color: #b4c7bd;
         text-shadow: 0 1px 2px rgb(0 24 20 / 48%) !important;
     }
 
     .login-input:-webkit-autofill:focus {
         -webkit-text-fill-color: #f8fafc !important;
         caret-color: #f8fafc;
-        -webkit-box-shadow: 0 0 0 1000px rgb(7 43 39 / 28%) inset !important;
-        box-shadow: 0 0 0 1000px rgb(7 43 39 / 28%) inset !important;
+        -webkit-box-shadow: 0 0 0 1000px #123e34 inset !important;
+        box-shadow: 0 0 0 1000px #123e34 inset !important;
         border-color: #6ee7b7;
         text-shadow: 0 1px 2px rgb(0 24 20 / 48%) !important;
     }
@@ -315,17 +531,17 @@ body.login-page::before {
     .login-input:autofill:hover {
         -webkit-text-fill-color: #f8fafc !important;
         caret-color: #f8fafc;
-        -webkit-box-shadow: 0 0 0 1000px rgb(7 43 39 / 20%) inset !important;
-        box-shadow: 0 0 0 1000px rgb(7 43 39 / 20%) inset !important;
-        border-color: rgb(255 255 255 / 26%);
+        -webkit-box-shadow: 0 0 0 1000px #123e34 inset !important;
+        box-shadow: 0 0 0 1000px #123e34 inset !important;
+        border-color: #b4c7bd;
         text-shadow: 0 1px 2px rgb(0 24 20 / 48%) !important;
     }
 
     .login-input:autofill:focus {
         -webkit-text-fill-color: #f8fafc !important;
         caret-color: #f8fafc;
-        -webkit-box-shadow: 0 0 0 1000px rgb(7 43 39 / 28%) inset !important;
-        box-shadow: 0 0 0 1000px rgb(7 43 39 / 28%) inset !important;
+        -webkit-box-shadow: 0 0 0 1000px #123e34 inset !important;
+        box-shadow: 0 0 0 1000px #123e34 inset !important;
         border-color: #6ee7b7;
         text-shadow: 0 1px 2px rgb(0 24 20 / 48%) !important;
     }
@@ -704,4 +920,25 @@ body.login-page::before {
 
 .report-table td.report-location {
     max-width: 220px;
+}
+
+.dashboard-chart-tooltip {
+    position: fixed;
+    z-index: 100;
+    pointer-events: none;
+    white-space: pre-line;
+    max-width: min(280px, calc(100vw - 16px));
+    padding: 10px 12px;
+    border: 1px solid #d1fae5;
+    border-radius: 8px;
+    background: #ffffff;
+    color: #334155;
+    font-family: Inter, sans-serif;
+    font-size: 12px;
+    line-height: 1.7;
+    box-shadow: 0 4px 16px rgb(15 23 42 / 10%);
+}
+[data-chart-point]:focus-visible, [data-donut-category]:focus-visible {
+    outline: 2px solid #047857;
+    outline-offset: 3px;
 }

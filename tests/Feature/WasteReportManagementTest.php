@@ -43,6 +43,33 @@ class WasteReportManagementTest extends TestCase
         $this->get(route('admin.reports.edit', $report))->assertOk()->assertSee('Simpan perubahan');
     }
 
+    public function test_report_pages_use_indonesian_labels_without_changing_stored_values(): void
+    {
+        $admin = $this->admin();
+        $categories = collect([
+            ['name' => 'Organic Waste', 'slug' => 'organic-waste'],
+            ['name' => 'Plastic Waste', 'slug' => 'plastic-waste'],
+            ['name' => 'Paper Waste', 'slug' => 'paper-waste'],
+            ['name' => 'Kategori Khusus', 'slug' => 'custom-waste'],
+        ])->map(fn ($values) => WasteCategory::query()->create($values));
+        $report = $this->report(User::factory()->create(), $categories->first());
+        $report->statusHistories()->create([
+            'changed_by' => $admin->id, 'old_status' => 'pending', 'new_status' => 'in_progress',
+        ]);
+        $this->actingAs($admin);
+        foreach (['index', 'create', 'edit'] as $page) {
+            $response = $this->get(route('admin.reports.'.$page, $page === 'edit' ? $report : []));
+            $response->assertOk()->assertSee('Sampah Organik')->assertSee('Sampah Plastik')
+                ->assertSee('Sampah Kertas')->assertSee('Kategori Khusus')
+                ->assertDontSee('Organic Waste')->assertDontSee('Plastic Waste')->assertDontSee('Paper Waste');
+        }
+        $this->get(route('admin.reports.show', $report))->assertOk()
+            ->assertSee('Sampah Organik')->assertSee('Menunggu')->assertSee('Dalam Proses')
+            ->assertSee('Selesai')->assertSee('Ditolak')->assertDontSee('Pending')->assertDontSee('In Progress');
+        $this->assertSame('pending', $report->fresh()->status);
+        $this->assertSame('Organic Waste', $categories->first()->fresh()->name);
+    }
+
     public function test_admin_can_create_a_report(): void
     {
         Storage::fake('public');

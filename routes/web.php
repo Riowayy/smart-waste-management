@@ -55,5 +55,8 @@ Route::middleware(['auth', 'role:admin'])->prefix('admin')->name('admin.')->grou
 
 Route::middleware(['auth', 'role:user'])->prefix('dashboard')->name('user.')->group(function () {
     Route::get('/', [UserDashboardController::class, 'index'])->name('dashboard');
+    Route::get('/reports', [UserWasteReportController::class, 'index'])->name('reports.index');
+    Route::get('/reports/create', [UserWasteReportController::class, 'create'])->name('reports.create');
+    Route::post('/reports', [UserWasteReportController::class, 'store'])->name('reports.store');
     Route::get('/reports/{report}', [UserWasteReportController::class, 'show'])->name('reports.show');
 });

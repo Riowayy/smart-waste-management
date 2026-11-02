@@ -24,7 +24,8 @@ class CategoryManagementTest extends TestCase
         $response
             ->assertOk()
             ->assertSee('Manajemen Kategori')
-            ->assertSee('Organic Waste')
+            ->assertSee('Sampah Organik')
+            ->assertDontSee('organic-waste')
             ->assertViewHas('summary', fn (array $summary): bool => $summary === [
                 'categories' => 1,
                 'usedCategories' => 1,
@@ -186,6 +187,30 @@ class CategoryManagementTest extends TestCase
 
                 return $organic?->reports_count === 1 && $organic?->ai_predicted_reports_count === 1;
             });
+    }
+
+    public function test_default_category_labels_and_indonesian_search_preserve_internal_data(): void
+    {
+        $admin = $this->admin();
+        $categories = [
+            'Organic Waste' => 'Sampah Organik',
+            'Paper Waste' => 'Sampah Kertas',
+            'Plastic Waste' => 'Sampah Plastik',
+        ];
+
+        foreach ($categories as $name => $label) {
+            $category = $this->category($name);
+            $response = $this->actingAs($admin)->get(route('admin.categories.index', ['search' => $label]));
+            $response->assertOk()->assertSee($label)->assertDontSee($name)->assertDontSee($category->slug)
+                ->assertViewHas('categories', fn ($rows): bool => $rows->total() === 1 && $rows->first()->is($category));
+            $this->assertDatabaseHas('waste_categories', ['id' => $category->id, 'name' => $name, 'slug' => $category->slug]);
+        }
+
+        $custom = $this->category('Sampah Elektronik');
+        $this->get(route('admin.categories.index', ['search' => 'elektronik']))
+            ->assertOk()->assertSee($custom->name)->assertDontSee($custom->slug);
+        $this->get(route('admin.categories.index', ['search' => 'organic-waste']))
+            ->assertOk()->assertSee('Sampah Organik');
     }
 
     private function admin(): User

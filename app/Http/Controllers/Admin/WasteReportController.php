@@ -25,7 +25,7 @@ class WasteReportController extends Controller
         ]);
 
         $reports = WasteReport::query()
-            ->with(['user:id,name,email', 'category:id,name'])
+            ->with(['user:id,name,email', 'category:id,name,slug'])
             ->when($filters['search'] ?? null, function ($query, string $search): void {
                 $query->where(function ($query) use ($search): void {
                     $query->where('id', 'like', "%{$search}%")
@@ -41,7 +41,7 @@ class WasteReportController extends Controller
 
         return view('admin.reports.index', [
             'reports' => $reports,
-            'categories' => WasteCategory::query()->orderBy('name')->get(['id', 'name']),
+            'categories' => WasteCategory::query()->orderBy('name')->get(['id', 'name', 'slug']),
             'statuses' => $this->statuses(),
         ]);
     }
@@ -78,7 +78,7 @@ class WasteReportController extends Controller
     {
         $report->load([
             'user:id,name,email',
-            'category:id,name',
+            'category:id,name,slug',
             'statusHistories.changedBy:id,name',
         ]);
 
@@ -92,7 +92,7 @@ class WasteReportController extends Controller
     {
         return view('admin.reports.edit', [
             ...$this->formOptions(),
-            'report' => $report->load(['user:id,name,email', 'category:id,name']),
+            'report' => $report->load(['user:id,name,email', 'category:id,name,slug']),
         ]);
     }
 
@@ -173,17 +173,12 @@ class WasteReportController extends Controller
     {
         return [
             'users' => User::query()->orderBy('name')->get(['id', 'name', 'email']),
-            'categories' => WasteCategory::query()->orderBy('name')->get(['id', 'name']),
+            'categories' => WasteCategory::query()->orderBy('name')->get(['id', 'name', 'slug']),
         ];
     }
 
     private function statuses(): array
     {
-        return [
-            'pending' => 'Pending',
-            'in_progress' => 'In Progress',
-            'completed' => 'Completed',
-            'rejected' => 'Rejected',
-        ];
+        return \App\Support\ReportLabels::STATUSES;
     }
 }
