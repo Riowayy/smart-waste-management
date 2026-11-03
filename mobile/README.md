@@ -1,56 +1,25 @@
-# Welcome to your Expo app 👋
+# EcoTrack Mobile
 
-This is an [Expo](https://expo.dev) project created with [`create-expo-app`](https://www.npmjs.com/package/create-expo-app).
+Aplikasi mobile EcoTrack menggunakan Expo SDK 58, React Native, TypeScript, dan Expo Router.
 
-## Get started
+## Kondisi saat ini
 
-1. Install dependencies
+Halaman awal EcoTrack tersedia pada `src/app/index.tsx`, dengan navigasi Stack pada `src/app/_layout.tsx`. Komponen demo, navigasi tab demo, dan script reset template sudah dihapus. Komponen tema, hooks, serta aset aplikasi yang direferensikan `app.json` dipertahankan.
 
-   ```bash
-   npm install
-   ```
+Autentikasi, integrasi API Laravel, pelaporan, GPS, dan deteksi AI belum diimplementasikan pada mobile.
 
-2. Start the app
+## Pengembangan
 
-   ```bash
-   npx expo start
-   ```
+- `npm start`: menjalankan Expo.
+- `npm run web`: menjalankan pratinjau Web.
+- `npx tsc --noEmit`: memeriksa TypeScript.
+- `npx expo export --platform web`: menghasilkan build Web ke `dist/`.
+- `git diff --check`: memeriksa whitespace perubahan.
 
-In the output, you'll find options to open the app in a
+Script `npm run lint` tersedia, tetapi ESLint dan konfigurasinya belum disiapkan. Jangan menjalankannya sebagai pemeriksaan baca-saja: Expo dapat memasang dependency secara otomatis.
 
-- [development build](https://docs.expo.dev/develop/development-builds/introduction/)
-- [Android emulator](https://docs.expo.dev/workflow/android-studio-emulator/)
-- [iOS simulator](https://docs.expo.dev/workflow/ios-simulator/)
-- [Expo Go](https://expo.dev/go), a limited sandbox for trying out app development with Expo
+Konfigurasi Web memakai `output: "server"`; deployment membutuhkan runtime server yang sesuai.
 
-You can start developing by editing the files inside the **src/app** directory. This project uses [file-based routing](https://docs.expo.dev/router/introduction).
+## Konteks proyek
 
-## Get a fresh project
-
-When you're ready, run:
-
-```bash
-npm run reset-project
-```
-
-This command will move the starter code to the **example** directory and create a blank **src/app** directory where you can start developing.
-
-### Other setup steps
-
-- To set up ESLint for linting, run `npx expo lint`, or follow our guide on ["Using ESLint and Prettier"](https://docs.expo.dev/guides/using-eslint/)
-- If you'd like to set up unit testing, follow our guide on ["Unit Testing with Jest"](https://docs.expo.dev/develop/unit-testing/)
-- Learn more about the TypeScript setup in this template in our guide on ["Using TypeScript"](https://docs.expo.dev/guides/typescript/)
-
-## Learn more
-
-To learn more about developing your project with Expo, look at the following resources:
-
-- [Expo documentation](https://docs.expo.dev/): Learn fundamentals, or go into advanced topics with our [guides](https://docs.expo.dev/guides).
-- [Learn Expo tutorial](https://docs.expo.dev/tutorial/introduction/): Follow a step-by-step tutorial where you'll create a project that runs on Android, iOS, and the web.
-
-## Join the community
-
-Join our community of developers creating universal apps.
-
-- [Expo on GitHub](https://github.com/expo/expo): View our open source platform and contribute.
-- [Discord community](https://chat.expo.dev): Chat with Expo users and ask questions.
+Baca `AGENTS.md`, `../AGENTS.md`, dan seluruh `instrucktor/` sebelum mengubah kode. Kontrak backend berada di `../docs/API.md`. Dependency dan versi stack dipertahankan selama pembersihan template.

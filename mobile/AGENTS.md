@@ -1,41 +1,342 @@
-This is an Expo/React Native mobile application. Prioritize mobile-first patterns, performance, and cross-platform compatibility.
+# AGENTS.md - EcoTrack Mobile
 
-## Expo has changed — do not trust your training data
+## 1. Project Identity
 
-Expo ships breaking changes every SDK release. APIs you remember are likely renamed, moved, or removed. Before writing any code that touches an Expo, EAS, or React Native API:
+This is the mobile application of **EcoTrack Smart Waste Management**.
 
-1. Read the major version of the `expo` package in `package.json`.
-2. Fetch the matching versioned docs: `https://docs.expo.dev/versions/v<major>.0.0/`
-3. For anything else, fetch https://docs.expo.dev/llms.txt — an index of all Expo docs with corrections to common LLM misconceptions. Follow its links to the specific page you need; never answer from memory.
+Repository: `Riowayy/smart-waste-management`
 
-## Commands
+Mobile directory: `mobile/`
 
-Use `bunx` instead of `npx` if the project uses bun (`bun.lock` present).
+Prioritize:
+- Mobile-first development.
+- Performance and lightweight implementation.
+- Cross-platform compatibility.
+- Maintainable architecture.
+- Secure API integration.
+- Consistent UI/UX.
+
+The existing Laravel website is already developed. Do not modify the website unless explicitly requested.
+
+## 2. Mandatory Project Context
+
+Before starting any task:
+
+1. Read the root `../AGENTS.md` if available.
+2. Read all relevant documents inside `instrucktor/`.
+3. Inspect the current source code before modifying it.
+4. Check `package.json` and `app.json`.
+5. Read `../docs/API.md` when working with backend integration.
+6. Inspect the relevant Laravel routes, controllers, requests, models, and resources when necessary.
+7. Create a short implementation plan before changing code.
+
+Never assume that previous documentation perfectly represents the current source code.
+
+## 3. Mandatory Skills
+
+Every code-changing task MUST use these three skills:
+
+1. `lean-code`
+2. `planning`
+3. `project context`
+
+Local skills directory:
+
+`C:\Users\Nazriel Fahri\.agents\skills`
+
+Instructions:
+
+- Locate the corresponding skill directories and read their `SKILL.md` files.
+- Apply the planning skill before implementing changes.
+- Apply lean-code principles throughout implementation.
+- Apply project context to preserve architecture, existing decisions, and project boundaries.
+- Select additional relevant skills based on the actual task.
+- If a required local skill is unavailable, report the issue rather than pretending it was used.
+- Online skills are permitted when they provide a genuine improvement. Review their instructions and compatibility before using them.
+- Do not install unrelated skills or dependencies unnecessarily.
+
+## 4. Technology Stack Lock
+
+The project uses:
+
+- Expo SDK 58.
+- React Native 0.88.1.
+- React 19.3.0.
+- TypeScript 6.0.3.
+- Expo Router 58.
+- Laravel REST API.
+- MySQL.
+- Laravel Sanctum.
+
+These technologies must not be replaced without explicit approval.
+
+Do not introduce:
+- Flutter.
+- Native Android development as the primary architecture.
+- Next.js as a replacement for React Native.
+- Another navigation framework.
+- Another backend framework.
+
+Existing dependency versions must be checked before introducing additional packages.
+
+## 5. Expo Documentation Policy
+
+**Expo changes between SDK releases. Never rely exclusively on training data.**
+
+Before using Expo, EAS, or React Native APIs:
+
+1. Read the Expo major version in `package.json`.
+2. Access the matching versioned documentation.
+
+For the current SDK 58:
+
+`https://docs.expo.dev/versions/v58.0.0/`
+
+3. Read:
+
+`https://docs.expo.dev/llms.txt`
+
+4. Follow the official documentation links relevant to the task.
+5. Verify API compatibility before writing code.
+
+Never use outdated APIs simply because they worked in an older Expo SDK.
+
+## 6. Package Management
+
+This repository currently uses npm.
+
+Use:
 
 ```bash
-npx expo install <package>  # ALWAYS use instead of npm/yarn/pnpm/bun add — resolves SDK-compatible versions
-npx expo start              # start the dev server
-npx expo lint               # lint
-npx tsc --noEmit            # typecheck
-npx expo-doctor             # diagnose dependency and config issues
-npx expo install --fix      # fix incompatible package versions
+npx expo install <package>
 ```
 
-Run lint and typecheck before declaring any task done.
+For Expo-compatible dependencies.
 
-## Navigation & Routing
+Available commands:
 
-- Use **Expo Router** for all navigation. Routes live in `src/app/` — every file there is a screen, `_layout.tsx` files define navigators. Keep non-route code (components, hooks, utils) outside `src/app/`.
-- Import `Link`, `router`, and `useLocalSearchParams` from `expo-router`.
-- Docs: https://docs.expo.dev/router/introduction.md
+```bash
+npm install
+npx expo start
+npx expo lint
+npx tsc --noEmit
+npx expo-doctor
+npx expo install --check
+npx expo install --fix
+npm run web
+```
 
-## Building with EAS
+Use `bunx` only if the project is intentionally migrated to Bun and contains the appropriate lockfile.
 
-Use EAS to build, sign, and submit the app in the cloud (`eas build`, `eas submit`) and to ship over-the-air updates (`eas update`) — no local Xcode or Android Studio required. Run EAS CLI as `bunx eas-cli <command>` in Bun projects, or `npx eas-cli@latest <command>` otherwise; substitute that for bare `eas` in docs examples.
-Docs: https://docs.expo.dev/eas/index.md
+Important:
+- Do not run `npm audit fix --force` without examining its consequences.
+- Do not update all dependencies unnecessarily.
+- Preserve Expo SDK compatibility.
+- Avoid redundant packages.
+- Prefer Expo-supported modules.
 
-## Rules
+## 7. Navigation and Routing
 
-- If `ios/` and `android/` directories do not exist, they are generated (Continuous Native Generation). Never create or edit them by hand — configure native behavior in `app.json` and config plugins.
-- Expo Go only includes its bundled native modules. After adding a library with native code, the app needs a development build: `npx expo run:ios|android` locally, or `eas build --profile development`.
-- Prefer recommended Expo modules over third-party libraries, and check your available skills before adding dependencies. Docs: https://docs.expo.dev/versions/latest/index.md
+Use Expo Router for all application navigation.
+
+Routes are located in:
+
+`src/app/`
+
+Rules:
+- Every route file represents a screen.
+- `_layout.tsx` defines navigation layouts.
+- Components, hooks, services, and utilities belong outside the route directory.
+- Import navigation utilities from `expo-router`.
+- Maintain typed routes where applicable.
+
+Documentation:
+
+`https://docs.expo.dev/router/introduction.md`
+
+## 8. Application Architecture
+
+Follow a modular architecture.
+
+Responsibilities:
+
+- `app/`: Routing and screens.
+- `components/`: Reusable UI components.
+- `features/`: Feature-specific logic.
+- `services/`: API communication and external services.
+- `constants/`: Theme and configuration.
+- `hooks/`: Reusable React hooks.
+- `types/`: Shared TypeScript definitions.
+
+Avoid unnecessary abstractions and excessive file fragmentation.
+
+## 9. Backend Integration
+
+Laravel is the primary backend and source of truth.
+
+API prefix:
+
+`/api/v1`
+
+Authentication:
+
+Laravel Sanctum Bearer Token.
+
+Rules:
+- Never invent API endpoints.
+- Verify endpoint contracts before implementation.
+- Use the existing Laravel API.
+- Respect server-side validation.
+- Handle HTTP errors correctly.
+- Do not modify Laravel backend files unless explicitly requested.
+- Never implement fake AI responses.
+
+Use environment configuration for API URLs.
+
+Never expose private credentials through `EXPO_PUBLIC_*`.
+
+Never store authentication tokens in AsyncStorage.
+
+## 10. Security and Privacy
+
+- Protect authentication tokens.
+- Never log passwords or tokens.
+- Respect camera and location permissions.
+- Do not send GPS coordinates without appropriate user permission.
+- Do not trust user-submitted role or ownership identifiers.
+- Respect Laravel authorization and report ownership.
+- Use HTTPS in production.
+- Handle unauthorized sessions correctly.
+
+## 11. UI/UX Standards
+
+Design EcoTrack as a professional waste management application.
+
+Requirements:
+- Modern and clean interface.
+- Consistent green visual identity.
+- Responsive layouts.
+- Mobile-first implementation.
+- Proper safe area handling.
+- Accessible typography and controls.
+- Consistent spacing and colors.
+- Clear loading, empty, success, and error states.
+
+Use reusable components and centralized design tokens.
+
+All user-facing application text must use Indonesian.
+
+## 12. EAS Build Policy
+
+Use Expo Application Services for cloud builds.
+
+Documentation:
+
+`https://docs.expo.dev/eas/index.md`
+
+Commands:
+
+```bash
+npx eas-cli@latest build --platform android
+```
+
+Rules:
+- Prefer cloud builds.
+- Do not require Android Studio for routine development.
+- Do not create native folders manually.
+- Do not modify generated native projects manually.
+- Configure native functionality through `app.json` and supported config plugins.
+- Check EAS configuration before starting a production build.
+
+## 13. Continuous Native Generation
+
+If `android/` and `ios/` directories do not exist, Expo generates them when required.
+
+Never create or edit them manually.
+
+Use Expo configuration and config plugins.
+
+Remember that native dependencies may require a development build instead of Expo Go.
+
+## 14. Testing and Browser Inspection
+
+Before declaring work complete:
+
+Run:
+
+```bash
+npm run lint
+npx tsc --noEmit
+npx expo-doctor
+```
+
+When relevant, use Playwright for browser testing.
+
+Playwright may be used to:
+- Inspect the running Expo Web application.
+- Navigate through screens.
+- Test forms and buttons.
+- Verify authentication flows.
+- Detect UI errors.
+- Identify browser console errors.
+- Check responsive layouts.
+- Reproduce application bugs.
+
+Use existing Playwright tooling when available. Do not add unnecessary dependencies.
+
+Do not claim a test passed unless it was actually executed.
+
+## 15. File Management
+
+Before deleting or replacing files:
+
+1. Inspect the file.
+2. Search for imports and references.
+3. Check platform-specific implementations.
+4. Check asset references.
+5. Check app configuration.
+6. Verify whether the file is still needed.
+
+Never perform bulk deletion without dependency verification.
+
+Preserve working Expo configuration.
+
+## 16. Git Safety
+
+- Never force push.
+- Never delete branches.
+- Never overwrite user changes.
+- Never commit without permission.
+- Never push without permission.
+- Inspect Git status before modifying existing work.
+
+## 17. Development Workflow
+
+For every task, follow this workflow:
+
+1. Understand the request.
+2. Read relevant project context.
+3. Read and apply the three mandatory skills.
+4. Inspect the existing implementation.
+5. Check official documentation when required.
+6. Create an implementation plan.
+7. Implement the smallest suitable change.
+8. Run relevant checks.
+9. Test the application.
+10. Report changes and remaining issues.
+
+## 18. Completion Report
+
+Every completed task must include:
+
+- What was implemented.
+- Files created or modified.
+- Dependencies added or changed.
+- Tests executed.
+- Actual test results.
+- Known limitations.
+- Recommended next step.
+
+Never report untested functionality as completed.
+
+**Primary objective: Build a lightweight, reliable, secure, and professional EcoTrack mobile application without disrupting the existing Laravel website and backend architecture.**
