@@ -68,7 +68,7 @@ Kondisi saat ini:
 - Alias `@/*` sudah tersedia.
 - Halaman awal EcoTrack tersedia dengan navigasi Stack; halaman Explore, navigasi tab demo, animasi, dan aset demo sudah dihapus.
 - Belum tersedia autentikasi mobile.
-- Belum tersedia API client mobile.
+- Fondasi API client mobile tersedia di `src/services/api/`; token di `src/services/token-storage.ts` (TASK 001).
 - Belum tersedia dashboard EcoTrack mobile.
 - Belum tersedia form laporan sampah.
 - Belum tersedia integrasi kamera dan GPS.

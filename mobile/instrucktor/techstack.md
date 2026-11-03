@@ -217,7 +217,7 @@ The following capabilities are planned for mobile development:
 
 | Capability | Technology Direction | Status |
 |---|---|---|
-| Secure Token Storage | Expo SecureStore | Not installed |
+| Secure Token Storage | Expo SecureStore ~58.0.2 | Terpasang pada TASK 001; Android/iOS, Web memakai memori |
 | Image Selection | Expo ImagePicker | Not installed |
 | Camera | Expo Camera | Not installed |
 | GPS Location | Expo Location | Not installed |
@@ -226,7 +226,7 @@ The following capabilities are planned for mobile development:
 
 IMPORTANT:
 
-These packages are planned technologies, not currently installed dependencies.
+Selain SecureStore yang sudah dipasang pada TASK 001, modul kemampuan perangkat di atas masih berupa rencana. Verifikasi package.json sebelum menggunakannya.
 
 Before installation:
 1. Check Expo SDK 58 compatibility.
