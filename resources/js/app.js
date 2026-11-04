@@ -12,8 +12,13 @@ document.addEventListener('DOMContentLoaded', () => {
     const sidebarClockDate = document.querySelector('[data-clock-date]');
     const sidebarClockTime = document.querySelector('[data-clock-time]');
     const desktopMedia = window.matchMedia('(min-width: 1024px)');
-    const isUserPortal = document.body.classList.contains('user-portal');
     const sidebarStorageKey = document.documentElement.dataset.sidebarStorage || 'ecotrack.adminSidebar.collapsed';
+    let lastFocusedElement = document.activeElement;
+    document.addEventListener('focusin', (event) => {
+        if (event.target !== document.body) lastFocusedElement = event.target;
+    });
+    // Browser dapat melepas fokus sebelum event breakpoint ketika kontrol menjadi display:none.
+    const previousFocus = () => document.activeElement === document.body ? lastFocusedElement : document.activeElement;
 
     const setMobileToggleState = (expanded) => {
         sidebarToggle?.setAttribute('aria-expanded', String(expanded));
@@ -29,7 +34,7 @@ document.addEventListener('DOMContentLoaded', () => {
     };
 
     const setDesktopCollapsed = (collapsed, persist = true) => {
-        if (isUserPortal && sidebar) sidebar.inert = false;
+        if (sidebar) sidebar.inert = false;
         document.documentElement.classList.toggle('sidebar-collapsed', collapsed);
         sidebarClock?.setAttribute('tabindex', collapsed ? '0' : '-1');
         sidebarCollapseButton?.setAttribute('aria-expanded', String(!collapsed));
@@ -103,17 +108,21 @@ document.addEventListener('DOMContentLoaded', () => {
     });
 
     const openMobileSidebar = () => {
-        if (isUserPortal && sidebar) sidebar.inert = false;
+        if (!sidebar || desktopMedia.matches) return;
+        sidebar.inert = false;
         sidebar?.classList.add('is-open');
         overlay?.classList.add('is-visible');
         document.body.classList.add('overflow-hidden');
         setMobileToggleState(true);
-        if (isUserPortal) sidebarNavigationLinks[0]?.focus();
+        sidebarNavigationLinks[0]?.focus({ preventScroll: true });
     };
 
-    const closeMobileSidebar = () => {
-        if (isUserPortal && sidebar) {
-            if (sidebar.contains(document.activeElement)) sidebarToggle?.focus();
+    const closeMobileSidebar = (restoreFocus = true) => {
+        const wasOpen = sidebar?.classList.contains('is-open');
+        if (sidebar && !desktopMedia.matches) {
+            if (restoreFocus && (wasOpen || sidebar.contains(previousFocus()))) {
+                sidebarToggle?.focus({ preventScroll: true });
+            }
             sidebar.inert = true;
         }
         sidebar?.classList.remove('is-open');
@@ -153,21 +162,39 @@ document.addEventListener('DOMContentLoaded', () => {
         setDesktopCollapsed(false);
         sidebarCollapseButton?.focus({ preventScroll: true });
     });
-    overlay?.addEventListener('click', closeMobileSidebar);
+    overlay?.addEventListener('click', () => closeMobileSidebar());
     sidebarCloseButtons.forEach((button) => {
-        button.addEventListener('click', closeMobileSidebar);
+        button.addEventListener('click', () => closeMobileSidebar());
     });
 
     document.addEventListener('keydown', (event) => {
-        if (event.key === 'Escape' && !desktopMedia.matches) {
+        if (desktopMedia.matches || !sidebar?.classList.contains('is-open')) return;
+        if (event.key === 'Escape') {
+            event.preventDefault();
             closeMobileSidebar();
+        }
+        if (event.key === 'Tab') {
+            const controls = Array.from(sidebar.querySelectorAll('a[href], button, input, select, textarea, [tabindex]'))
+                .filter(element => !element.disabled && element.tabIndex >= 0 && element.getClientRects().length > 0);
+            const first = controls[0];
+            const last = controls.at(-1);
+            if (first && ((event.shiftKey ? document.activeElement === first : document.activeElement === last)
+                || !sidebar.contains(document.activeElement))) {
+                event.preventDefault();
+                (event.shiftKey ? last : first).focus({ preventScroll: true });
+            }
         }
     });
 
     // Keep the desktop preference while switching to the mobile drawer layout.
     desktopMedia.addEventListener('change', (event) => {
         if (event.matches) {
+            const focused = previousFocus();
+            closeMobileSidebar(false);
             setDesktopCollapsed(readDesktopCollapsed(), false);
+            if (focused === sidebarToggle || sidebar?.contains(focused) && !focused.getClientRects().length) {
+                sidebarNavigationLinks[0]?.focus({ preventScroll: true });
+            }
         } else {
             closeMobileSidebar();
         }
