@@ -9,6 +9,7 @@ use App\Models\WasteCategory;
 use App\Models\WasteReport;
 use App\Support\ReportLabels;
 use Illuminate\Contracts\View\View;
+use Illuminate\Database\UniqueConstraintViolationException;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
@@ -60,11 +61,7 @@ class CategoryController extends Controller
     {
         $validated = $request->validated();
 
-        $category = WasteCategory::query()->create([
-            'name' => $validated['name'],
-            'slug' => $this->uniqueSlug($validated['name']),
-            'description' => $validated['description'] ?? null,
-        ]);
+        $category = $this->saveCategory(new WasteCategory, $validated);
 
         return redirect()->route('admin.categories.index')
             ->with('status', "Kategori {$category->name} berhasil ditambahkan.");
@@ -78,11 +75,7 @@ class CategoryController extends Controller
     public function update(UpdateCategoryRequest $request, WasteCategory $category): RedirectResponse
     {
         $validated = $request->validated();
-        $category->update([
-            'name' => $category->isDefault() ? $category->name : $validated['name'],
-            'slug' => $category->isDefault() ? $category->slug : $this->uniqueSlug($validated['name'], $category->id),
-            'description' => $validated['description'] ?? null,
-        ]);
+        $this->saveCategory($category, $validated);
 
         return redirect()->route('admin.categories.index')
             ->with('status', "Kategori {$category->name} berhasil diperbarui.");
@@ -118,6 +111,35 @@ class CategoryController extends Controller
 
         return redirect()->route('admin.categories.index')
             ->with('status', "Kategori {$category->name} berhasil dihapus.");
+    }
+
+    private function saveCategory(WasteCategory $category, array $validated): WasteCategory
+    {
+        $isDefault = $category->exists && $category->isDefault();
+        $category->fill([
+            'name' => $isDefault ? $category->name : $validated['name'],
+            'description' => $validated['description'] ?? null,
+        ]);
+
+        for ($attempt = 1; ; $attempt++) {
+            if (! $isDefault) {
+                $category->slug = $this->uniqueSlug($validated['name'], $category->getKey());
+            }
+
+            try {
+                $category->save();
+
+                return $category;
+            } catch (UniqueConstraintViolationException $exception) {
+                $slugConflict = $exception->index === 'waste_categories_slug_unique'
+                    || ($exception->columns === ['slug']
+                        && ($exception->errorInfo[2] ?? null) === 'UNIQUE constraint failed: waste_categories.slug');
+
+                if ($isDefault || ! $slugConflict || $attempt >= 3) {
+                    throw $exception;
+                }
+            }
+        }
     }
 
     private function uniqueSlug(string $name, ?int $ignoreId = null): string

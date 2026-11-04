@@ -6,6 +6,8 @@ use App\Models\User;
 use App\Models\WasteCategory;
 use App\Models\WasteReport;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\DB;
+use PHPUnit\Framework\Attributes\DataProvider;
 use Tests\TestCase;
 
 class CategoryManagementTest extends TestCase
@@ -88,6 +90,116 @@ class CategoryManagementTest extends TestCase
             ->assertSessionHasErrors('name');
 
         $this->assertDatabaseCount('waste_categories', 0);
+    }
+
+    #[DataProvider('categoryWriteOperations')]
+    public function test_slug_conflicts_after_precheck_are_retried(string $operation): void
+    {
+        $this->actingAs($this->admin());
+        $category = $operation === 'update' ? $this->category('Original Category') : null;
+        $attempts = 0;
+
+        $this->duringCategorySave(function (WasteCategory $candidate) use (&$attempts): void {
+            $attempts++;
+            if ($attempts <= 2) {
+                // Simulasi penulis lain setelah precheck, memakai constraint SQLite sebenarnya.
+                DB::table('waste_categories')->insert([
+                    'name' => 'Concurrent category '.$attempts,
+                    'slug' => $candidate->slug,
+                ]);
+            }
+        }, function () use ($category): void {
+            $this->writeCategory($category)
+                ->assertRedirect(route('admin.categories.index'))
+                ->assertSessionHas('status');
+        });
+
+        $this->assertSame(3, $attempts);
+        $this->assertDatabaseHas('waste_categories', [
+            'name' => 'Organic Waste!', 'slug' => 'organic-waste-3', 'description' => 'Updated description',
+        ]);
+        $this->assertDatabaseCount('waste_categories', 3);
+        if ($category) {
+            $this->assertSame('organic-waste-3', $category->fresh()->slug);
+        }
+    }
+
+    #[DataProvider('categoryWriteOperations')]
+    public function test_slug_conflicts_stop_after_three_attempts(string $operation): void
+    {
+        $this->actingAs($this->admin());
+        $category = $operation === 'update' ? $this->category('Original Category') : null;
+        $attempts = 0;
+
+        $this->duringCategorySave(function (WasteCategory $candidate) use (&$attempts): void {
+            $attempts++;
+            DB::table('waste_categories')->insert([
+                'name' => 'Concurrent category '.$attempts,
+                'slug' => $candidate->slug,
+            ]);
+        }, function () use ($category): void {
+            $this->writeCategory($category)->assertStatus(500);
+        });
+
+        $this->assertSame(3, $attempts);
+        $this->assertDatabaseMissing('waste_categories', ['name' => 'Organic Waste!']);
+        $this->assertDatabaseCount('waste_categories', $category ? 4 : 3);
+        if ($category) {
+            $this->assertSame('original-category', $category->fresh()->slug);
+            $this->assertNull($category->fresh()->description);
+        }
+    }
+
+    #[DataProvider('categoryWriteOperations')]
+    public function test_unrelated_unique_constraint_errors_are_not_retried(string $operation): void
+    {
+        $admin = $this->admin();
+        $this->actingAs($admin);
+        $category = $operation === 'update' ? $this->category('Original Category') : null;
+        $attempts = 0;
+
+        $this->duringCategorySave(function () use ($admin, &$attempts): void {
+            $attempts++;
+            DB::table('users')->insert([
+                'name' => 'Duplicate email', 'email' => $admin->email, 'password' => 'unused',
+            ]);
+        }, function () use ($category): void {
+            $this->writeCategory($category)->assertStatus(500);
+        });
+
+        $this->assertSame(1, $attempts);
+        $this->assertDatabaseMissing('waste_categories', ['name' => 'Organic Waste!']);
+        $this->assertDatabaseCount('waste_categories', $category ? 1 : 0);
+        if ($category) {
+            $this->assertSame('original-category', $category->fresh()->slug);
+        }
+    }
+
+    public static function categoryWriteOperations(): array
+    {
+        return ['create' => ['create'], 'update' => ['update']];
+    }
+
+    private function duringCategorySave(callable $listener, callable $request): void
+    {
+        $dispatcher = WasteCategory::getEventDispatcher();
+        WasteCategory::setEventDispatcher(clone $dispatcher);
+
+        try {
+            WasteCategory::saving($listener);
+            $request();
+        } finally {
+            WasteCategory::setEventDispatcher($dispatcher);
+        }
+    }
+
+    private function writeCategory(?WasteCategory $category): \Illuminate\Testing\TestResponse
+    {
+        $payload = ['name' => 'Organic Waste!', 'description' => 'Updated description'];
+
+        return $category
+            ? $this->put(route('admin.categories.update', $category), $payload)
+            : $this->post(route('admin.categories.store'), $payload);
     }
 
     public function test_duplicate_category_name_is_rejected(): void
