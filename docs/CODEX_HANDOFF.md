@@ -831,3 +831,7 @@ Tidak ada source code, konfigurasi, migration, atau database yang diubah. File y
 - UserPortalTest + WasteReportManagementTest + Api/V1/MobileApiTest lulus **32 test / 243 assertion** di SQLite in-memory. Kasus mencakup deskripsi 1.001 ditolak dengan pesan Indonesia, kedua koordinat kosong, koordinat melewati rentang, pengiriman valid, serta deskripsi tepat 1.000 dan koordinat batas -90/180 diterima. Test opsional koordinat TASK 020 diperbarui sesuai kebutuhan terbaru; kategori tetap diuji opsional.
 - PHP lint request/test, node --check, build, dan git diff --check lulus. Peringatan font lokal build yang sudah ada tetap muncul. Playwright User memeriksa maxlength/penghitung 1000/1000, label/required/rentang kedua koordinat, petunjuk Google Maps dan tidak adanya overflow; teks pemeriksaan dibersihkan tanpa submit.
 - Skill diterapkan: lean-code, planning, project-context, design-taste-frontend, impeccable, baseline-ui, frontend-craft, testing-strategy, dan playwright; instruksi sudah dibaca dalam konteks sesi. Tidak ada screenshot, folder output baru, migration, perubahan schema/data, Admin/API mobile, dependency, commit, atau push.
+
+## Acuan audit terbaru
+
+Status sistem dan batas verifikasi per 4 November 2026 tersedia di [SYSTEM_AUDIT.md](SYSTEM_AUDIT.md). Catatan historis di atas bukan status source saat ini; backend kini memiliki autentikasi, role, API, dan pengujian bisnis.

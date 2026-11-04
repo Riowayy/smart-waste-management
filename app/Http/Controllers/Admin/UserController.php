@@ -103,7 +103,12 @@ class UserController extends Controller
                 $attributes['password'] = $validated['password'];
             }
 
+            $roleChanged = $lockedUser->role !== $validated['role'];
             $lockedUser->forceFill($attributes)->save();
+
+            if (isset($attributes['password']) || $roleChanged) {
+                $lockedUser->tokens()->delete();
+            }
 
             return true;
         });

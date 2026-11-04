@@ -158,7 +158,7 @@ Query parameter opsional:
 
 | Parameter | Aturan | Contoh |
 |---|---|---|
-| `page` | Nomor halaman, default 1 | `?page=2` |
+| `page` | Integer 1–1.000.000, default 1 | `?page=2` |
 | `per_page` | Integer 1–50, default 15 | `?per_page=10` |
 | `status` | `pending`, `in_progress`, `completed`, atau `rejected` | `?status=pending` |
 
@@ -280,3 +280,13 @@ Contoh error validasi:
 5. Ambil token melalui register/login dan kirim melalui header Bearer.
 
 Jangan pernah mengirim nilai secret dari `.env` kepada klien atau menambahkannya ke dokumentasi.
+
+## Klarifikasi audit 4 November 2026
+
+Validasi API mobile diwarisi dari `App\Http\Requests\StoreWasteReportRequest`: deskripsi maksimal 10.000 karakter dan koordinat opsional. Form website pengguna memiliki override tersendiri: maksimal 1.000 karakter dan koordinat wajib. Jangan menyalin batas website ke mobile tanpa memeriksa request API. Kategori opsional di keduanya.
+
+Riwayat mobile memakai GET `/reports` dan GET `/reports/{id}` melalui client terpusat. Foto menggunakan URL storage publik; akses URL foto tidak memerlukan Bearer token. Jangan menganggap pembatasan ownership endpoint detail juga melindungi URL foto.
+
+Pergantian password atau role oleh admin mencabut seluruh token Sanctum akun terkait. Logout hanya mencabut token aktif. Masa kedaluwarsa token belum dikonfigurasi; penetapan kebijakan masa sesi masih diperlukan sebelum deployment.
+
+HTTP 429 mempertahankan header `Retry-After`. POST laporan belum memiliki idempotency key server; mobile menahan submit ganda dan meminta pengguna memeriksa dashboard ketika hasil pengiriman tidak pasti. Perlindungan ini tidak menjamin exactly-once setelah aplikasi dimuat ulang.

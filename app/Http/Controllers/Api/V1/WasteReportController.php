@@ -20,6 +20,7 @@ class WasteReportController extends Controller
     public function index(Request $request): JsonResponse
     {
         $filters = $request->validate([
+            'page' => ['nullable', 'integer', 'min:1', 'max:1000000'],
             'status' => ['nullable', 'in:pending,in_progress,completed,rejected'],
             'per_page' => ['nullable', 'integer', 'min:1', 'max:50'],
         ]);
@@ -28,6 +29,7 @@ class WasteReportController extends Controller
             ->with('category:id,name,slug,description')
             ->when($filters['status'] ?? null, fn ($query, $status) => $query->where('status', $status))
             ->latest()
+            ->orderByDesc('id')
             ->paginate($filters['per_page'] ?? 15)
             ->withQueryString();
 

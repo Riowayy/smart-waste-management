@@ -107,5 +107,5 @@ Jelaskan keputusan arsitektur yang penting agar developer dapat memahami dan mem
 
 ## Skill wajib setiap sesi dan perubahan
 
-- Wajib gunakan `lean-code`, `project-context`, dan `planning` pada setiap sesi dan sebelum perubahan; baca SKILL.md masing-masing jika belum dibaca dalam konteks sesi.
+- Wajib gunakan `lean-code`, `project-context`, 'design-taste-frontend','emil-design-eng', 'impeccable.' dan `planning` pada setiap sesi dan sebelum perubahan; baca SKILL.md masing-masing jika belum dibaca dalam konteks sesi.
 - Pilih rencana singkat untuk tugas kecil, gunakan kembali konteks yang sudah diverifikasi, dan buat perubahan terkecil yang memenuhi kebutuhan.
