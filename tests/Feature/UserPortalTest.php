@@ -145,6 +145,32 @@ class UserPortalTest extends TestCase
         $this->assertSame('in_progress', $report->refresh()->status);
     }
 
+    public function test_owned_detail_only_shows_safe_maps_links_for_valid_coordinates(): void
+    {
+        $owner = $this->member();
+        $this->actingAs($owner);
+        foreach ([
+            [-21.1563889, 115.4840833, true], [0, 0, true],
+            [-90, -180, true], [90, 180, true],
+            [null, null, false], [null, 115, false], [-21, null, false],
+            [-90.1, 115, false], [90.1, 115, false],
+            [-21, -180.1, false], [-21, 180.1, false],
+        ] as [$latitude, $longitude, $hasLink]) {
+            $report = $this->report($owner, ['latitude' => $latitude, 'longitude' => $longitude]);
+            $response = $this->get(route('user.reports.show', $report))->assertOk();
+            $document = new \DOMDocument;
+            @$document->loadHTML('<?xml encoding="UTF-8">'.$response->getContent());
+            $links = (new \DOMXPath($document))->query('//a[normalize-space(.)="Buka di GMaps"]');
+            $this->assertSame($hasLink ? 1 : 0, $links->length);
+            if ($hasLink) {
+                $link = $links->item(0);
+                $this->assertSame('https://www.google.com/maps?q='.$report->latitude.','.$report->longitude, $link->getAttribute('href'));
+                $this->assertSame('_blank', $link->getAttribute('target'));
+                $this->assertSame('noopener noreferrer', $link->getAttribute('rel'));
+            }
+        }
+    }
+
     public function test_user_routes_require_login_and_reject_admin_and_user_cannot_access_admin(): void
     {
         foreach (['user.dashboard', 'user.reports.index', 'user.reports.create'] as $route) {

@@ -6,14 +6,11 @@ use Illuminate\Foundation\Http\FormRequest;
 
 class UpdateWasteReportRequest extends FormRequest
 {
+    use \App\Http\Requests\Admin\NormalizesReportCoordinates;
+
     public function authorize(): bool
     {
         return $this->user()?->isAdmin() === true;
-    }
-
-    public function messages(): array
-    {
-        return \App\Support\ReportLabels::validationMessages();
     }
 
     public function attributes(): array

@@ -19,6 +19,12 @@
                     @if($report->latitude !== null || $report->longitude !== null)
                         Lintang: {{ $report->latitude ?? 'Tidak diisi' }}<br>Bujur: {{ $report->longitude ?? 'Tidak diisi' }}
                     @else Koordinat tidak disertakan. @endif
+                    @if(is_numeric($report->latitude) && is_numeric($report->longitude)
+                        && is_finite((float) $report->latitude) && is_finite((float) $report->longitude)
+                        && $report->latitude >= -90 && $report->latitude <= 90
+                        && $report->longitude >= -180 && $report->longitude <= 180)
+                        <a href="https://www.google.com/maps?q={{ $report->latitude }},{{ $report->longitude }}" target="_blank" rel="noopener noreferrer" class="mt-2 inline-flex rounded-lg bg-emerald-700 px-3 py-2.5 text-sm font-semibold text-white hover:bg-emerald-800">Buka di GMaps</a>
+                    @endif
                 </dd></div>
                 <div class="sm:col-span-2"><dt class="text-sm text-slate-600">Deskripsi laporan</dt><dd class="mt-2 whitespace-pre-line break-words text-sm leading-7 text-slate-800">{{ $report->description }}</dd></div>
             </dl>

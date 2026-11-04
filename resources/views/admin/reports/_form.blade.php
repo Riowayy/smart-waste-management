@@ -35,13 +35,13 @@
         @endif
     </div>
     <div>
-        <label for="latitude" class="mb-1.5 block text-sm font-medium text-slate-700">Lintang <span class="text-slate-400">(opsional)</span></label>
-        <input id="latitude" name="latitude" type="number" step="any" min="-90" max="90" value="{{ old('latitude', $report?->latitude) }}" class="field-control w-full" @if($errors->has('latitude')) aria-invalid="true" aria-describedby="latitude-error" @endif>
+        <label for="latitude" class="mb-1.5 block text-sm font-medium text-slate-700">Latitude <span class="text-slate-400">(opsional)</span></label>
+        <input id="latitude" name="latitude" type="text" placeholder="-21.156389 atau 21°9'23.0&quot;S" value="{{ old('latitude', $report?->latitude) }}" class="field-control w-full" @if($errors->has('latitude')) aria-invalid="true" aria-describedby="latitude-error" @endif>
         @error('latitude') <p id="latitude-error" class="mt-1.5 text-sm text-red-700" role="alert">{{ $message }}</p> @enderror
     </div>
     <div>
-        <label for="longitude" class="mb-1.5 block text-sm font-medium text-slate-700">Bujur <span class="text-slate-400">(opsional)</span></label>
-        <input id="longitude" name="longitude" type="number" step="any" min="-180" max="180" value="{{ old('longitude', $report?->longitude) }}" class="field-control w-full" @if($errors->has('longitude')) aria-invalid="true" aria-describedby="longitude-error" @endif>
+        <label for="longitude" class="mb-1.5 block text-sm font-medium text-slate-700">Longitude <span class="text-slate-400">(opsional)</span></label>
+        <input id="longitude" name="longitude" type="text" placeholder="115.484083 atau 115°29'02.7&quot;E" value="{{ old('longitude', $report?->longitude) }}" class="field-control w-full" @if($errors->has('longitude')) aria-invalid="true" aria-describedby="longitude-error" @endif>
         @error('longitude') <p id="longitude-error" class="mt-1.5 text-sm text-red-700" role="alert">{{ $message }}</p> @enderror
     </div>
 </div>
