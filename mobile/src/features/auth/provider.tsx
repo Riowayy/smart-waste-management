@@ -1,17 +1,26 @@
-import { createContext, useContext, useEffect, useRef, useState, type ReactNode } from 'react';
+import { createContext, useCallback, useContext, useEffect, useRef, useState, type ReactNode } from 'react';
 import { session, type Credentials, type User } from './session';
 function useSession() {
  const [user,setUser] = useState<User | null>(null);
  const [status,setStatus] = useState<'loading'|'ready'|'error'>('loading');
  const busy = useRef(false);
- async function restore() {
+ const restoreSession = useCallback(async () => {
   if (busy.current) return;
-  busy.current = true; setStatus('loading');
-  try { setUser(await session.restore()); setStatus('ready'); }
-  catch { setStatus('error'); }
+  busy.current = true;
+  try {
+   await session.restore().then(
+    restoredUser => { setUser(restoredUser); setStatus('ready'); },
+    () => { setStatus('error'); },
+   );
+  }
   finally { busy.current = false; }
- }
- useEffect(() => { void restore(); }, []);
+ }, []);
+ const restore = useCallback(async () => {
+  if (busy.current) return;
+  setStatus('loading');
+  await restoreSession();
+ }, [restoreSession]);
+ useEffect(() => { void restoreSession(); }, [restoreSession]);
  async function authenticate(mode: 'login'|'register', values: Credentials) {
   if (busy.current) return;
   busy.current = true;

@@ -1,1 +1,1 @@
-﻿export { default } from '../features/reporting/history';
+export { default } from '../features/reporting/history';

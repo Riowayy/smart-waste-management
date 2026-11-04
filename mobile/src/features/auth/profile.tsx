@@ -1,5 +1,5 @@
 import { useCallback, useRef, useState, type ComponentRef } from 'react';
-import { ActivityIndicator, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { ActivityIndicator, Alert, Platform, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Link, useFocusEffect } from 'expo-router';
 import { SymbolView, type AndroidSymbol, type SFSymbol } from 'expo-symbols';
@@ -12,6 +12,7 @@ const colors = { canvas: '#E7FFF3', surface: '#FFFFFF', green: '#006C49', ink: '
 
 export default function ProfileScreen() {
   const auth = useAuth();
+  const { restore } = auth;
   const [loggingOut, setLoggingOut] = useState(false);
   const [error, setError] = useState('');
   const [total, setTotal] = useState<number | null>(null);
@@ -20,24 +21,26 @@ export default function ProfileScreen() {
   const [revision, setRevision] = useState(0);
   const [about, setAbout] = useState(false);
   const [notifications, setNotifications] = useState(false);
+  const [confirmLogoutOpen, setConfirmLogoutOpen] = useState(false);
   const lock = useRef(false);
   const scroll = useRef<ComponentRef<typeof ScrollView>>(null);
   const accountY = useRef(0);
-  const request = useRef<AbortController | null>(null);
+  const request = useRef<(AbortController & { revision: number }) | null>(null);
+  const confirmationLock = useRef(false);
 
   useFocusEffect(useCallback(() => {
-    const controller = new AbortController();
+    const controller = Object.assign(new AbortController(), { revision });
     request.current = controller;
     setLoading(true); setStatisticsError(false); setTotal(null);
     void getDashboard(controller.signal).then(data => {
-      if (!controller.signal.aborted) setTotal(data.statistics.total);
+      if (!controller.signal.aborted && request.current?.revision === revision) setTotal(data.statistics.total);
     }).catch(async failure => {
       if (controller.signal.aborted) return;
       setStatisticsError(true);
-      if (failure instanceof ApiError && [401, 403].includes(failure.status ?? 0)) await auth.restore();
+      if (failure instanceof ApiError && [401, 403].includes(failure.status ?? 0)) await restore();
     }).finally(() => { if (!controller.signal.aborted) setLoading(false); });
     return () => controller.abort();
-  }, [revision]));
+  }, [revision, restore]));
 
   async function logout() {
     if (lock.current) return;
@@ -49,6 +52,23 @@ export default function ProfileScreen() {
     try { await auth.logout(); }
     catch { setError('Belum dapat keluar. Periksa koneksi lalu coba lagi.'); }
     finally { lock.current = false; setLoggingOut(false); }
+  }
+  function cancelLogout() {
+    confirmationLock.current = false;
+    setConfirmLogoutOpen(false);
+  }
+  function confirmLogout() {
+    cancelLogout();
+    void logout();
+  }
+  function requestLogout() {
+    if (lock.current || confirmationLock.current) return;
+    confirmationLock.current = true;
+    if (Platform.OS === 'web') { setConfirmLogoutOpen(true); return; }
+    Alert.alert('Keluar dari akun?', 'Apakah Anda yakin ingin keluar?', [
+      { text: 'Tidak', style: 'cancel', onPress: cancelLogout },
+      { text: 'Ya', style: 'destructive', onPress: confirmLogout },
+    ], { cancelable: true, onDismiss: cancelLogout });
   }
   const initials = auth.user?.name.trim().split(/\s+/).slice(0, 2).map(part => Array.from(part)[0]).join('').toLocaleUpperCase('id-ID') || 'E';
 
@@ -88,10 +108,17 @@ export default function ProfileScreen() {
         </View>
       </View>
       {!!error && <Text accessibilityRole="alert" style={styles.error}>{error}</Text>}
-      <Pressable accessibilityRole="button" accessibilityState={{ busy: loggingOut, disabled: loggingOut }} disabled={loggingOut} onPress={() => void logout()} style={({pressed}) => [styles.logoutButton, {opacity:loggingOut || pressed?0.65:1}]}>
+      <Pressable accessibilityRole="button" accessibilityState={{ busy: loggingOut, disabled: loggingOut }} disabled={loggingOut} onPress={requestLogout} style={({pressed}) => [styles.logoutButton, {opacity:loggingOut || pressed?0.65:1}]}>
         {loggingOut ? <ActivityIndicator color={colors.red}/> : <Icon name="logout" ios="rectangle.portrait.and.arrow.right" color={colors.red}/>}
         <Text style={styles.logoutText}>{loggingOut ? 'Keluar...' : 'Keluar dari Akun'}</Text>
       </Pressable>
+      {confirmLogoutOpen && <View accessibilityRole="alert" style={styles.card}>
+        <Text style={styles.copy}>Apakah Anda yakin ingin keluar?</Text>
+        <View style={styles.infoRow}>
+          <Pressable accessibilityRole="button" accessibilityLabel="Tidak" onPress={cancelLogout} style={[styles.retry,styles.confirmAction]}><Text style={styles.linkText}>Tidak</Text></Pressable>
+          <Pressable accessibilityRole="button" accessibilityLabel="Ya" onPress={confirmLogout} style={[styles.logoutButton,styles.confirmAction]}><Text style={styles.logoutText}>Ya</Text></Pressable>
+        </View>
+      </View>}
       <Text style={styles.footer}>EcoTrack · Pelaporan sampah dan pemantauan status</Text>
     </ScrollView>
     {!loggingOut && <AppBottomNav active="/profile" />}
@@ -101,6 +128,7 @@ function Icon({name,ios,color=colors.green,size=21}:{name:AndroidSymbol;ios:SFSy
   return <SymbolView name={{ios,android:name,web:name}} tintColor={color} size={size}/>;
 }
 const styles = StyleSheet.create({
+  confirmAction:{flex:1,alignItems:'center'},
   page:{flex:1,backgroundColor:colors.canvas},
   header:{width:'100%',maxWidth:520,alignSelf:'center',paddingHorizontal:18,paddingVertical:14,flexDirection:'row',alignItems:'center',justifyContent:'space-between'},brandGroup:{flexDirection:'row',alignItems:'center',gap:10},
   mark:{width:40,height:40,borderRadius:20,backgroundColor:'#CCF5E4',alignItems:'center',justifyContent:'center'},brand:{fontSize:20,fontWeight:'700',color:colors.green},caption:{fontSize:12,color:colors.ink},iconButton:{minWidth:44,minHeight:44,alignItems:'center',justifyContent:'center'},

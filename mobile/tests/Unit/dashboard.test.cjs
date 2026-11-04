@@ -24,7 +24,7 @@ const fixture = {
   recent_reports: Array.from({ length: 5 }, (_, i) => ({
     id: i + 1, description: 'Laporan ' + (i + 1),
     image_url: 'https://example.test/laporan-' + (i + 1) + '.jpg',
-    category: i ? { name: 'Organic Waste' } : null,
+    category: i ? { name: ['Organic Waste', 'Plastic Waste', 'Paper Waste', 'Organic Waste'][i - 1] } : null,
     status: ['pending', 'in_progress', 'completed', 'rejected', 'pending'][i],
     created_at: '2026-11-03T04:00:00Z',
   })),
@@ -62,22 +62,24 @@ function components() {
     '../../constants/theme': { Colors: { light: {} }, Spacing: {}, MaxContentWidth: 800 },
     '../../services/api/client': {}, '../auth/provider': {}, '../auth/screen': {},
     './service': service(),
+    '../reporting/history-data': load('src/features/reporting/history-data.ts', {}),
   });
 }
 test('konten menampilkan lima laporan, kategori nullable, tanggal dan semua status', () => {
   const { DashboardContent } = components();
   const html = renderToStaticMarkup(React.createElement(DashboardContent, { data: fixture }));
-  for (const label of ['Total laporan', 'Menunggu', 'Sedang diproses', 'Selesai', 'Ditolak', 'Tanpa kategori', 'Organic Waste', '2026']) {
+  for (const label of ['Total laporan', 'Menunggu', 'Sedang diproses', 'Selesai', 'Ditolak', 'Tanpa kategori', 'Sampah Organik', 'Sampah Plastik', 'Sampah Kertas', '2026']) {
     assert.ok(html.includes(label), label);
   }
   for (let i = 1; i <= 5; i++) assert.ok(html.includes('Laporan ' + i));
   assert.ok(html.includes('https://example.test/laporan-1.jpg'));
   assert.ok(html.includes('Lihat semua'));
+  for (const name of ['Organic Waste', 'Plastic Waste', 'Paper Waste']) assert.equal(html.includes(name), false);
 });
 test('dashboard kosong tetap menampilkan statistik nol dan empty state', () => {
   const { DashboardContent } = components();
   const data = { statistics: { total: 0, pending: 0, in_progress: 0, completed: 0, rejected: 0 }, recent_reports: [] };
   const html = renderToStaticMarkup(React.createElement(DashboardContent, { data }));
   assert.ok(html.includes('Belum ada laporan'));
-  assert.equal((html.match(/>0</g) || []).length, 6);
+  assert.equal((html.match(/>0</g) || []).length, 5);
 });

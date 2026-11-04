@@ -1,11 +1,11 @@
-import { useEffect, useRef, useState } from 'react';
-import { ActivityIndicator, Image, KeyboardAvoidingView, Platform, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
+import { useCallback, useEffect, useRef, useState } from 'react';
+import { ActivityIndicator, Alert, Image, KeyboardAvoidingView, Platform, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { SymbolView, type AndroidSymbol, type SFSymbol } from 'expo-symbols';
 import { AppBottomNav } from '../dashboard/screen';
 import LocationMap from './location-map';
 import { pendingReport, reportBaseline, findSubmittedReports } from './recovery';
-import type { HistoryReport } from './history-data';
+import { categoryLabel, type HistoryReport } from './history-data';
 import { Link, router } from 'expo-router';
 import * as Picker from 'expo-image-picker';
 import * as Location from 'expo-location';
@@ -13,6 +13,11 @@ import * as Location from 'expo-location';
 import { useAuth } from '../auth/provider';
 import { ApiError } from '../../services/api/client';
 import { getCategories, submitReport, validateDraft, validatePhoto, type Category, type Draft } from './service';
+
+const photoSources = [
+  { label: 'Kamera', camera: true, icon: 'photo_camera', ios: 'camera' },
+  { label: 'Galeri', camera: false, icon: 'photo_library', ios: 'photo' },
+] as const;
 
 export function validateReportForm(draft: Draft): Record<string, string[]> {
   const errors = validateDraft(draft);
@@ -38,19 +43,26 @@ export default function CreateReportScreen() {
   const [matches,setMatches] = useState<HistoryReport[]>([]);
   const [gpsBusy,setGpsBusy] = useState(false);
   const [gpsError,setGpsError] = useState('');
+  const [photoSourceOpen,setPhotoSourceOpen] = useState(false);
   const lock = useRef(false);
   const active = useRef(true);
   const locationRevision = useRef(0);
+  const photoUri = draft.photo?.uri;
   useEffect(() => {
-    const uri = draft.photo?.uri;
+    const uri = photoUri;
     return () => { if (Platform.OS === 'web' && uri?.startsWith('blob:') && pendingReport.get(ownerId)?.draft.photo?.uri !== uri) URL.revokeObjectURL(uri); };
-  }, [draft.photo?.uri]);
-  async function load(signal?: AbortSignal) {
+  }, [photoUri, ownerId]);
+  const loadCategories = useCallback(async (signal?: AbortSignal) => {
+    await getCategories(signal).then(
+      data => { if (!signal?.aborted) {setCategories(data);setCategoryState('ready');} },
+      () => { if (!signal?.aborted) setCategoryState('error'); },
+    );
+  }, []);
+  async function load() {
     setCategoryState('loading');
-    try { const data=await getCategories(signal); if (!signal?.aborted) {setCategories(data);setCategoryState('ready');} }
-    catch {if (!signal?.aborted) setCategoryState('error');}
+    await loadCategories();
   }
-  useEffect(()=>{active.current=true;const c=new AbortController();void load(c.signal);return ()=>{active.current=false;c.abort();};},[]);
+  useEffect(()=>{active.current=true;const c=new AbortController();void loadCategories(c.signal);return ()=>{active.current=false;c.abort();};},[loadCategories]);
   async function operation(action:()=>Promise<void>) {
     if(lock.current)return;
     lock.current=true;setBusy(true);setMessage('');
@@ -70,6 +82,17 @@ export default function CreateReportScreen() {
       return;
     }
     setDraft(old=>({...old,photo}));setErrors(old=>({...old,image:[]}));
+  }
+  function choosePhotoSource(camera: boolean) {
+    setPhotoSourceOpen(false);
+    void operation(() => selectPhoto(camera));
+  }
+  function showPhotoSources() {
+    if (Platform.OS === 'web') { setPhotoSourceOpen(value => !value); return; }
+    Alert.alert('Foto sampah', undefined, [
+      ...photoSources.map(source => ({ text: source.label, onPress: () => choosePhotoSource(source.camera) })),
+      { text: 'Batal', style: 'cancel' },
+    ], { cancelable: true });
   }
   async function resolveAddress(coordinates: {latitude:number;longitude:number}, revision:number) {
     let timer:ReturnType<typeof setTimeout>|undefined;
@@ -138,6 +161,7 @@ export default function CreateReportScreen() {
   }
   function newReport() {
     locationRevision.current++;
+    setPhotoSourceOpen(false);
     setDraft({description:'',categoryId:null,photo:null,location:null});setSuccess(false);setUncertain(false);setErrors({});setAddress('');setAccuracy(null);setMessage('');
   }
   const fieldErrors=(name:string)=>errors[name]?.map((text,i)=><Text key={i} accessibilityRole="alert" style={styles.error}>{text}</Text>);
@@ -169,16 +193,17 @@ export default function CreateReportScreen() {
             {draft.photo ? <View style={styles.preview}>
               <Image source={{uri:draft.photo.uri}} accessibilityLabel="Preview foto laporan" resizeMode="cover" style={styles.previewImage}/>
               <View style={styles.photoBadge}><FormIcon name="check_circle" ios="checkmark.circle" size={16} color="#FFFFFF"/><Text style={styles.photoBadgeText}>1 foto terlampir{photoSize ? ` (${(photoSize/1024/1024).toFixed(1)} MB)` : ''}</Text></View>
-              <View style={styles.photoActions}><View style={styles.flex}><FormAction label="Ganti Foto" icon="photo_library" ios="photo" disabled={frozen} onPress={()=>void operation(()=>selectPhoto(false))}/></View><FormAction label="Hapus" icon="delete" ios="trash" danger disabled={frozen} onPress={()=>setDraft(old=>({...old,photo:null}))}/></View>
-            </View> : <View style={styles.photoEmpty}><FormIcon name="add_a_photo" ios="camera" size={36}/><Text style={styles.copy}>Tambahkan foto temuan sampah</Text><FormAction label="Pilih Foto" disabled={frozen} onPress={()=>void operation(()=>selectPhoto(false))}/></View>}
-            <View style={styles.info}><FormIcon name="info" ios="info.circle"/><Text style={[styles.copy,styles.flex]}>Format: JPG, PNG, WebP{ '\n' }Maks. 5 MB</Text><FormAction label="Kamera" icon="photo_camera" ios="camera" disabled={frozen} onPress={()=>void operation(()=>selectPhoto(true))}/></View>
+              <View style={styles.photoActions}><View style={styles.flex}><FormAction label="Ganti Foto" icon="photo_library" ios="photo" disabled={frozen} onPress={showPhotoSources}/></View><FormAction label="Hapus" icon="delete" ios="trash" danger disabled={frozen} onPress={()=>setDraft(old=>({...old,photo:null}))}/></View>
+            </View> : <Pressable accessibilityRole="button" accessibilityLabel="Tambahkan foto laporan" accessibilityState={{disabled:frozen,expanded:photoSourceOpen}} disabled={frozen} onPress={showPhotoSources} style={({pressed})=>[styles.photoEmpty,{opacity:frozen?0.5:pressed?0.75:1}]}><FormIcon name="add_photo_alternate" ios="photo.badge.plus" size={36}/></Pressable>}
+            {photoSourceOpen && Platform.OS === 'web' && <View style={styles.row}>{photoSources.map(source=><View key={source.label} style={styles.flex}><FormAction label={source.label} icon={source.icon} ios={source.ios} disabled={frozen} onPress={()=>choosePhotoSource(source.camera)}/></View>)}</View>}
+            <View style={styles.info}><FormIcon name="info" ios="info.circle"/><Text style={[styles.copy,styles.flex]}>Format: JPG, PNG, WebP{ '\n' }Maks. 5 MB</Text></View>
             {fieldErrors('image')}
           </View>
           <View style={styles.card}>
             <Text accessibilityRole="header" style={styles.title}>Kategori Sampah <Text style={styles.required}>*</Text></Text>
             {categoryState==='loading' ? <View style={styles.row}><ActivityIndicator color="#006C49"/><Text style={styles.copy}>Memuat kategori...</Text></View> : categoryState==='error' ? <><Text style={styles.error}>Kategori belum dapat dimuat.</Text><FormAction label="Muat ulang kategori" disabled={frozen} onPress={()=>void operation(()=>load())}/></> : !categories.length ? <><Text style={styles.copy}>Belum ada kategori tersedia.</Text><FormAction label="Muat ulang kategori" disabled={frozen} onPress={()=>void operation(()=>load())}/></> : <>
-              <Pressable accessibilityRole="button" accessibilityLabel="Pilih kategori sampah" accessibilityState={{expanded:categoryOpen,disabled:frozen}} disabled={frozen} onPress={()=>setCategoryOpen(!categoryOpen)} style={styles.select}><FormIcon name="recycling" ios="arrow.3.trianglepath"/><Text style={[styles.copy,styles.flex]}>{selectedCategory?.name ?? 'Pilih kategori sampah'}</Text><FormIcon name={categoryOpen?'expand_less':'expand_more'} ios={categoryOpen?'chevron.up':'chevron.down'}/></Pressable>
-              {categoryOpen && <View accessibilityRole="radiogroup" style={styles.options}>{categories.map(category=><Pressable key={category.id} accessibilityRole="radio" accessibilityState={{checked:draft.categoryId===category.id,disabled:frozen}} disabled={frozen} onPress={()=>{setDraft(old=>({...old,categoryId:category.id}));setCategoryOpen(false);setErrors(old=>({...old,category_id:[]}));}} style={styles.option}><Text style={[styles.copy,styles.flex]}>{category.name}</Text>{draft.categoryId===category.id && <FormIcon name="check" ios="checkmark"/>}</Pressable>)}</View>}
+              <Pressable accessibilityRole="button" accessibilityLabel="Pilih kategori sampah" accessibilityState={{expanded:categoryOpen,disabled:frozen}} disabled={frozen} onPress={()=>setCategoryOpen(!categoryOpen)} style={styles.select}><FormIcon name="recycling" ios="arrow.3.trianglepath"/><Text style={[styles.copy,styles.flex]}>{selectedCategory ? categoryLabel({category:selectedCategory}) : 'Pilih kategori sampah'}</Text><FormIcon name={categoryOpen?'expand_less':'expand_more'} ios={categoryOpen?'chevron.up':'chevron.down'}/></Pressable>
+              {categoryOpen && <View accessibilityRole="radiogroup" style={styles.options}>{categories.map(category=><Pressable key={category.id} accessibilityRole="radio" accessibilityState={{checked:draft.categoryId===category.id,disabled:frozen}} disabled={frozen} onPress={()=>{setDraft(old=>({...old,categoryId:category.id}));setCategoryOpen(false);setErrors(old=>({...old,category_id:[]}));}} style={styles.option}><Text style={[styles.copy,styles.flex]}>{categoryLabel({category})}</Text>{draft.categoryId===category.id && <FormIcon name="check" ios="checkmark"/>}</Pressable>)}</View>}
             </>}
             {fieldErrors('category_id')}
           </View>
@@ -224,7 +249,7 @@ const styles=StyleSheet.create({
   copy:{fontSize:14,lineHeight:21,color:'#233F32'},row:{flexDirection:'row',alignItems:'center',gap:9},
   preview:{height:230,borderRadius:13,overflow:'hidden',backgroundColor:'#D7F8E8'},previewImage:{width:'100%',height:'100%'},
   photoBadge:{position:'absolute',top:12,left:12,right:12,alignSelf:'flex-start',flexDirection:'row',alignItems:'center',gap:5,padding:8,borderRadius:16,backgroundColor:'#006C49'},photoBadgeText:{fontSize:12,fontWeight:'600',color:'#FFFFFF',flexShrink:1},
-  photoActions:{position:'absolute',bottom:12,left:12,right:12,flexDirection:'row',gap:8},photoEmpty:{minHeight:190,borderRadius:13,backgroundColor:'#D7F8E8',alignItems:'center',justifyContent:'center',gap:12,padding:16},
+  photoActions:{position:'absolute',bottom:12,left:12,right:12,flexDirection:'row',gap:8},photoEmpty:{minHeight:100,borderRadius:13,backgroundColor:'#D7F8E8',alignItems:'center',justifyContent:'center',padding:16},
   info:{flexDirection:'row',alignItems:'center',gap:9,padding:10,borderRadius:13,backgroundColor:'#E3FCF0'},
   select:{flexDirection:'row',alignItems:'center',gap:10,minHeight:54,padding:13,borderRadius:13,backgroundColor:'#D7FBE9'},options:{backgroundColor:'#EFFBF5',borderRadius:13,padding:5},option:{minHeight:48,padding:10,flexDirection:'row',alignItems:'center',gap:8},
   descriptionBox:{padding:13,borderRadius:13,backgroundColor:'#D7FBE9',gap:8},textarea:{minHeight:126,fontSize:14,lineHeight:23,color:'#102D23',padding:0},counter:{textAlign:'right',fontSize:12,color:'#52665D'},

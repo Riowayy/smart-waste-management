@@ -8,21 +8,20 @@ import { mapTiles } from './map-data';
 export default function LocationMap({ point }: { point: Coordinates }) {
   const [width, setWidth] = useState(0);
   const [loaded, setLoaded] = useState<string[]>([]);
-  const [failed, setFailed] = useState(false);
+  const [failed, setFailed] = useState<string | null>(null);
   const [revision, setRevision] = useState(0);
   const tiles = width ? mapTiles(point, width) : [];
   const identity = `${point.latitude}/${point.longitude}/${width}/${revision}`;
   useEffect(() => {
-    setLoaded([]); setFailed(false);
-    const timer = setTimeout(() => setFailed(true), 15000);
+    const timer = setTimeout(() => setFailed(identity), 15000);
     return () => clearTimeout(timer);
   }, [identity]);
   const ready = tiles.length > 0 && tiles.every(tile => loaded.includes(`${identity}/${tile.key}`));
   return <View style={styles.frame}>
     <View accessibilityLabel={`Peta lokasi ${point.latitude}, ${point.longitude}`} onLayout={event => setWidth(event.nativeEvent.layout.width)} style={styles.map}>
-      {tiles.map(tile => <Image key={`${identity}/${tile.key}`} source={{ uri: tile.uri, ...(Platform.OS === 'web' ? {} : { headers: { 'User-Agent': 'EcoTrackMobile/1.0 (+https://github.com/Riowayy/smart-waste-management)' } }) }} cachePolicy="disk" contentFit="fill" style={[styles.tile, {left:tile.left,top:tile.top}]} onLoad={() => setLoaded(old => [...old,`${identity}/${tile.key}`])} onError={() => setFailed(true)}/>)}
+      {tiles.map(tile => <Image key={`${identity}/${tile.key}`} source={{ uri: tile.uri, ...(Platform.OS === 'web' ? {} : { headers: { 'User-Agent': 'EcoTrackMobile/1.0 (+https://github.com/Riowayy/smart-waste-management)' } }) }} cachePolicy="disk" contentFit="fill" style={[styles.tile, {left:tile.left,top:tile.top}]} onLoad={() => setLoaded(old => [...old.filter(key => key.startsWith(`${identity}/`)),`${identity}/${tile.key}`])} onError={() => setFailed(identity)}/>)}
       {ready && <View pointerEvents="none" style={styles.pin}><SymbolView name={{ios:'mappin',android:'location_on',web:'location_on'}} tintColor="#D32F2F" size={38}/></View>}
-      {!ready && <View style={styles.overlay}>{failed || (width > 0 && !tiles.length) ? <><Text style={styles.text}>Peta belum dapat ditampilkan. Koordinat tetap tersedia.</Text><Pressable accessibilityRole="button" onPress={() => setRevision(value => value + 1)} style={styles.retry}><Text style={styles.text}>Muat ulang peta</Text></Pressable></> : <><ActivityIndicator color="#006C49"/><Text style={styles.text}>Memuat peta...</Text></>}</View>}
+      {!ready && <View style={styles.overlay}>{failed === identity || (width > 0 && !tiles.length) ? <><Text style={styles.text}>Peta belum dapat ditampilkan. Koordinat tetap tersedia.</Text><Pressable accessibilityRole="button" onPress={() => setRevision(value => value + 1)} style={styles.retry}><Text style={styles.text}>Muat ulang peta</Text></Pressable></> : <><ActivityIndicator color="#006C49"/><Text style={styles.text}>Memuat peta...</Text></>}</View>}
     </View>
     <Pressable accessibilityRole="link" accessibilityLabel="Hak cipta OpenStreetMap" onPress={() => void Linking.openURL('https://www.openstreetmap.org/copyright').catch(() => {})} style={styles.credit}><Text style={styles.creditText}>{'\u00A9'} OpenStreetMap contributors</Text></Pressable>
   </View>;
