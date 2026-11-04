@@ -3,7 +3,7 @@
 namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
-use App\Http\Requests\StoreWasteReportRequest;
+use App\Http\Requests\Admin\StoreWasteReportRequest;
 use App\Http\Requests\UpdateWasteReportRequest;
 use App\Http\Requests\UpdateWasteReportStatusRequest;
 use App\Models\User;

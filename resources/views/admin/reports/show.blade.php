@@ -28,7 +28,18 @@
                 <div><dt class="text-xs font-semibold uppercase tracking-wide text-slate-500">Pelapor</dt><dd class="mt-1 text-sm font-medium text-slate-800">{{ $report->user->name }} <span class="text-slate-500">({{ $report->user->email }})</span></dd></div>
                 <div><dt class="text-xs font-semibold uppercase tracking-wide text-slate-500">Kategori</dt><dd class="mt-1 text-sm text-slate-800">{{ \App\Support\ReportLabels::category($report->category) }}</dd></div>
                 <div class="sm:col-span-2"><dt class="text-xs font-semibold uppercase tracking-wide text-slate-500">Deskripsi</dt><dd class="mt-1 whitespace-pre-line text-sm leading-6 text-slate-700">{{ $report->description }}</dd></div>
-                <div><dt class="text-xs font-semibold uppercase tracking-wide text-slate-500">Koordinat</dt><dd class="mt-1 text-sm text-slate-800">{{ $report->latitude ?? '—' }}, {{ $report->longitude ?? '—' }}</dd></div>
+                <div>
+                    <dt class="text-xs font-semibold uppercase tracking-wide text-slate-500">Koordinat</dt>
+                    <dd class="mt-1 flex flex-wrap items-center gap-2 text-sm text-slate-800">
+                        <span>{{ $report->latitude ?? '—' }}, {{ $report->longitude ?? '—' }}</span>
+                        @if(is_numeric($report->latitude) && is_numeric($report->longitude)
+                            && is_finite((float) $report->latitude) && is_finite((float) $report->longitude)
+                            && $report->latitude >= -90 && $report->latitude <= 90
+                            && $report->longitude >= -180 && $report->longitude <= 180)
+                            <a href="https://www.google.com/maps?q={{ $report->latitude }},{{ $report->longitude }}" target="_blank" rel="noopener noreferrer" class="inline-flex rounded-lg bg-emerald-700 px-3 py-2.5 text-sm font-semibold text-white hover:bg-emerald-800">Buka di GMaps</a>
+                        @endif
+                    </dd>
+                </div>
                 <div><dt class="text-xs font-semibold uppercase tracking-wide text-slate-500">Status</dt><dd class="mt-2"><x-admin.status-badge :status="$report->status" /></dd></div>
             </dl>
             <img src="{{ asset('storage/'.$report->image_path) }}" alt="Foto laporan #{{ $report->id }}" class="mt-6 max-h-[28rem] w-full rounded-xl border border-slate-100 object-contain">
