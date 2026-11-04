@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Admin;
 use App\Http\Controllers\Controller;
 use App\Models\WasteCategory;
 use App\Models\WasteReport;
+use App\Support\ReportLabels;
 use Carbon\CarbonImmutable;
 use Illuminate\Support\Collection;
 use Illuminate\Http\Request;
@@ -22,19 +23,21 @@ class DashboardController extends Controller
             ->first();
 
         $categories = WasteCategory::query()
-            ->whereIn('name', ['Organic Waste', 'Plastic Waste', 'Paper Waste'])
+            ->whereIn('slug', array_keys(WasteCategory::DEFAULT_NAMES))
             ->withCount('reports')
-            ->get(['id', 'name'])
-            ->keyBy('name');
+            ->get(['id', 'name', 'slug'])
+            ->keyBy('slug');
 
-        $categoryDistribution = collect([
-            ['name' => 'Organic Waste', 'label' => 'Sampah Organik', 'color' => '#10b981'],
-            ['name' => 'Plastic Waste', 'label' => 'Sampah Plastik', 'color' => '#005ac2'],
-            ['name' => 'Paper Waste', 'label' => 'Sampah Kertas', 'color' => '#6366f1'],
-        ])->map(fn (array $category): array => [
-            ...$category,
-            'total' => (int) ($categories->get($category['name'])?->reports_count ?? 0),
-        ]);
+        $colors = ['#10b981', '#005ac2', '#6366f1'];
+        $categoryDistribution = collect(WasteCategory::DEFAULT_NAMES)
+            ->map(fn (string $name, string $slug): array => [
+                'name' => $name,
+                'slug' => $slug,
+                'label' => ReportLabels::CATEGORIES[$slug],
+                'total' => (int) ($categories->get($slug)?->reports_count ?? 0),
+            ])->values()->map(fn (array $category, int $index): array => [
+                ...$category, 'color' => $colors[$index],
+            ]);
 
         $categoryTotal = $categoryDistribution->sum('total');
         $circumference = 2 * M_PI * 48;

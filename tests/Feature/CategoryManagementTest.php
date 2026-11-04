@@ -112,7 +112,7 @@ class CategoryManagementTest extends TestCase
 
     public function test_admin_can_update_category_and_its_generated_slug(): void
     {
-        $category = $this->category('Organic Waste');
+        $category = $this->category('Custom Organic Waste');
 
         $this->actingAs($this->admin())
             ->put(route('admin.categories.update', $category), [
@@ -211,6 +211,34 @@ class CategoryManagementTest extends TestCase
             ->assertOk()->assertSee($custom->name)->assertDontSee($custom->slug);
         $this->get(route('admin.categories.index', ['search' => 'organic-waste']))
             ->assertOk()->assertSee('Sampah Organik');
+    }
+
+    public function test_seeded_categories_keep_their_identity_but_allow_description_updates(): void
+    {
+        $this->seed(\Database\Seeders\WasteCategorySeeder::class);
+        $this->actingAs($this->admin());
+
+        foreach (WasteCategory::all() as $category) {
+            $identity = $category->only(['id', 'name', 'slug']);
+            $description = $category->description;
+            $this->delete(route('admin.categories.destroy', $category))
+                ->assertRedirect(route('admin.categories.index'))->assertSessionHas('error');
+            $this->assertDatabaseHas('waste_categories', $identity);
+
+            $this->put(route('admin.categories.update', $category), [
+                'name' => 'Nama pengganti', 'description' => 'Tidak boleh tersimpan',
+            ])->assertSessionHasErrors('name');
+            $this->put(route('admin.categories.update', $category), [
+                'name' => $category->name, 'slug' => 'slug-pengganti',
+            ])->assertSessionHasErrors('slug');
+            $this->assertDatabaseHas('waste_categories', [...$identity, 'description' => $description]);
+
+            $this->put(route('admin.categories.update', $category), [
+                'name' => $category->name, 'description' => 'Deskripsi diperbarui',
+            ])->assertSessionHasNoErrors()->assertRedirect(route('admin.categories.index'));
+            $this->assertDatabaseHas('waste_categories', [...$identity, 'description' => 'Deskripsi diperbarui']);
+        }
+        $this->assertDatabaseCount('waste_categories', 3);
     }
 
     private function admin(): User

@@ -10,6 +10,17 @@ class WasteCategory extends Model
 {
     use HasFactory;
 
+    public const DEFAULT_NAMES = [
+        'organic-waste' => 'Organic Waste',
+        'plastic-waste' => 'Plastic Waste',
+        'paper-waste' => 'Paper Waste',
+    ];
+
+    public function isDefault(): bool
+    {
+        return array_key_exists($this->slug, self::DEFAULT_NAMES);
+    }
+
     protected $fillable = [
         'name',
         'slug',

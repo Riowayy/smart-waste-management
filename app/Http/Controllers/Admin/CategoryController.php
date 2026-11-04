@@ -79,8 +79,8 @@ class CategoryController extends Controller
     {
         $validated = $request->validated();
         $category->update([
-            'name' => $validated['name'],
-            'slug' => $this->uniqueSlug($validated['name'], $category->id),
+            'name' => $category->isDefault() ? $category->name : $validated['name'],
+            'slug' => $category->isDefault() ? $category->slug : $this->uniqueSlug($validated['name'], $category->id),
             'description' => $validated['description'] ?? null,
         ]);
 
@@ -93,6 +93,10 @@ class CategoryController extends Controller
         $result = DB::transaction(function () use ($category): string {
             $lockedCategory = WasteCategory::query()->lockForUpdate()->findOrFail($category->id);
 
+            if ($lockedCategory->isDefault()) {
+                return 'default';
+            }
+
             if ($lockedCategory->reports()->exists() || $lockedCategory->aiPredictedReports()->exists()) {
                 return 'in_use';
             }
@@ -101,6 +105,11 @@ class CategoryController extends Controller
 
             return 'deleted';
         });
+
+        if ($result === 'default') {
+            return redirect()->route('admin.categories.index')
+                ->with('error', 'Kategori bawaan tidak dapat dihapus. Anda dapat mengubah deskripsinya.');
+        }
 
         if ($result === 'in_use') {
             return redirect()->route('admin.categories.index')

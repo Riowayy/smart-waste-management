@@ -146,6 +146,33 @@ class AdminDashboardTest extends TestCase
         $this->assertSame(0, $days->last()['reports']);
     }
 
+    public function test_distribution_uses_stable_slugs_even_with_legacy_names_and_excludes_custom_categories(): void
+    {
+        $owner = User::factory()->create();
+        $organic = WasteCategory::create(['name' => 'Nama organik lama', 'slug' => 'organic-waste']);
+        $custom = WasteCategory::create(['name' => 'Organic Waste', 'slug' => 'custom-organic']);
+        $this->report($owner, $organic);
+        $this->report($owner, $organic);
+        $this->report($owner, $custom);
+        $this->report($owner, null);
+
+        $response = $this->actingAs($this->admin())->get(route('admin.dashboard'))->assertOk();
+        $distribution = $response->viewData('categoryDistribution');
+        $this->assertSame(['organic-waste', 'plastic-waste', 'paper-waste'], $distribution->pluck('slug')->all());
+        $this->assertSame([2, 0, 0], $distribution->pluck('total')->all());
+        $this->assertSame([100, 0, 0], $distribution->pluck('percent')->all());
+        $this->assertSame(['#10b981', '#005ac2', '#6366f1'], $distribution->pluck('color')->all());
+        $this->assertSame(2, $response->viewData('categoryTotal'));
+        $this->assertSame(4, $response->viewData('statistics')['total']);
+    }
+
+    public function test_category_distribution_stays_zero_when_no_categories_exist(): void
+    {
+        $response = $this->actingAs($this->admin())->get(route('admin.dashboard'))->assertOk();
+        $this->assertSame([0, 0, 0], $response->viewData('categoryDistribution')->pluck('total')->all());
+        $this->assertSame(0, $response->viewData('categoryTotal'));
+    }
+
     private function admin(): User
     {
         $admin = User::factory()->create()->forceFill(['role' => 'admin']);
