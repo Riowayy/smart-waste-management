@@ -3,7 +3,7 @@ import { ActivityIndicator, Linking, Pressable, RefreshControl, ScrollView, Styl
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { SymbolView, type AndroidSymbol } from 'expo-symbols';
 import ReportImage from '../../components/report-image';
-import { AppBottomNav } from '../dashboard/screen';
+
 import { categoryLabel, googleMapsUrl, HISTORY_PAGE_SIZE, locationLabel, reportCoordinates, visibleHistory } from './history-data';
 import LocationMap from './location-map';
 import { Link, useFocusEffect } from 'expo-router';
@@ -75,7 +75,7 @@ export default function HistoryScreen() {
   function badge(value: ReportStatus) {
     return <View style={[styles.badge, { backgroundColor: tones[value] }]}><Text style={[styles.badgeText, value === 'rejected' && { color: '#B4232E' }]}>{statusLabels[value]}</Text></View>;
   }
-  return <SafeAreaView style={styles.page} edges={['top', 'bottom', 'left', 'right']}>
+  return <SafeAreaView style={styles.page} edges={['top', 'left', 'right']}>
     <View style={styles.header}>
       <View style={styles.brandGroup}><View style={styles.mark}><Icon name="eco" color="#FFFFFF" /></View><Text style={styles.brand}>EcoTrack</Text></View>
       <View style={styles.brandGroup}>
@@ -132,7 +132,6 @@ export default function HistoryScreen() {
         </View>)}
       </View>}
     </ScrollView>
-    <AppBottomNav active="/reports" />
   </SafeAreaView>;
 }
 

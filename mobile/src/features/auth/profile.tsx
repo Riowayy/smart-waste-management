@@ -1,9 +1,11 @@
+import EcoModal from '../../components/eco-modal';
 import { useCallback, useRef, useState, type ComponentRef } from 'react';
-import { ActivityIndicator, Alert, Platform, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { useNavigationLock } from '../../components/navigation-lock';
+import { ActivityIndicator, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Link, useFocusEffect } from 'expo-router';
 import { SymbolView, type AndroidSymbol, type SFSymbol } from 'expo-symbols';
-import { AppBottomNav } from '../dashboard/screen';
+
 import { getDashboard } from '../dashboard/service';
 import { ApiError } from '../../services/api/client';
 import { useAuth } from './provider';
@@ -12,6 +14,7 @@ const colors = { canvas: '#E7FFF3', surface: '#FFFFFF', green: '#006C49', ink: '
 
 export default function ProfileScreen() {
   const auth = useAuth();
+  const { acquire } = useNavigationLock();
   const { restore } = auth;
   const [loggingOut, setLoggingOut] = useState(false);
   const [error, setError] = useState('');
@@ -44,6 +47,7 @@ export default function ProfileScreen() {
 
   async function logout() {
     if (lock.current) return;
+    const releaseNavigation = acquire();
     lock.current = true;
     request.current?.abort();
     setLoading(false);
@@ -51,7 +55,7 @@ export default function ProfileScreen() {
     setLoggingOut(true); setError('');
     try { await auth.logout(); }
     catch { setError('Belum dapat keluar. Periksa koneksi lalu coba lagi.'); }
-    finally { lock.current = false; setLoggingOut(false); }
+    finally { releaseNavigation(); lock.current = false; setLoggingOut(false); }
   }
   function cancelLogout() {
     confirmationLock.current = false;
@@ -64,15 +68,11 @@ export default function ProfileScreen() {
   function requestLogout() {
     if (lock.current || confirmationLock.current) return;
     confirmationLock.current = true;
-    if (Platform.OS === 'web') { setConfirmLogoutOpen(true); return; }
-    Alert.alert('Keluar dari akun?', 'Apakah Anda yakin ingin keluar?', [
-      { text: 'Tidak', style: 'cancel', onPress: cancelLogout },
-      { text: 'Ya', style: 'destructive', onPress: confirmLogout },
-    ], { cancelable: true, onDismiss: cancelLogout });
+    setConfirmLogoutOpen(true);
   }
   const initials = auth.user?.name.trim().split(/\s+/).slice(0, 2).map(part => Array.from(part)[0]).join('').toLocaleUpperCase('id-ID') || 'E';
 
-  return <SafeAreaView style={styles.page} edges={['top', 'left', 'right', 'bottom']}>
+  return <SafeAreaView style={styles.page} edges={['top', 'left', 'right']}>
     <View style={styles.header}>
       <Link href="/" asChild><Pressable accessibilityRole="link" accessibilityLabel="EcoTrack, buka beranda" disabled={loggingOut} style={styles.brandGroup}><View style={styles.mark}><Icon name="eco" ios="leaf" /></View><View><Text style={styles.brand}>EcoTrack</Text><Text style={styles.caption}>Profil Pengguna EcoTrack</Text></View></Pressable></Link>
       <Pressable accessibilityRole="button" accessibilityLabel="Informasi notifikasi" accessibilityState={{expanded:notifications}} onPress={() => setNotifications(!notifications)} style={styles.iconButton}><Icon name="notifications" ios="bell" size={25}/></Pressable>
@@ -112,23 +112,25 @@ export default function ProfileScreen() {
         {loggingOut ? <ActivityIndicator color={colors.red}/> : <Icon name="logout" ios="rectangle.portrait.and.arrow.right" color={colors.red}/>}
         <Text style={styles.logoutText}>{loggingOut ? 'Keluar...' : 'Keluar dari Akun'}</Text>
       </Pressable>
-      {confirmLogoutOpen && <View accessibilityRole="alert" style={styles.card}>
-        <Text style={styles.copy}>Apakah Anda yakin ingin keluar?</Text>
+      {confirmLogoutOpen && <EcoModal visible onClose={cancelLogout}>
+        <View style={styles.logoutMark}><Icon name="logout" ios="rectangle.portrait.and.arrow.right" color="#C84E58" size={30}/></View>
+        <Text accessibilityRole="header" style={styles.modalTitle}>Keluar dari akun?</Text>
+        <Text style={styles.modalCopy}>Anda akan keluar dari sesi EcoTrack saat ini.</Text>
         <View style={styles.infoRow}>
-          <Pressable accessibilityRole="button" accessibilityLabel="Tidak" onPress={cancelLogout} style={[styles.retry,styles.confirmAction]}><Text style={styles.linkText}>Tidak</Text></Pressable>
-          <Pressable accessibilityRole="button" accessibilityLabel="Ya" onPress={confirmLogout} style={[styles.logoutButton,styles.confirmAction]}><Text style={styles.logoutText}>Ya</Text></Pressable>
+          <Pressable accessibilityRole="button" accessibilityLabel="Batal" onPress={cancelLogout} style={[styles.modalButton,styles.cancelButton]}><Text style={styles.linkText}>Batal</Text></Pressable>
+          <Pressable accessibilityRole="button" accessibilityLabel="Keluar" onPress={confirmLogout} style={[styles.modalButton,styles.confirmButton]}><Text style={styles.confirmText}>Keluar</Text></Pressable>
         </View>
-      </View>}
+      </EcoModal>}
       <Text style={styles.footer}>EcoTrack · Pelaporan sampah dan pemantauan status</Text>
     </ScrollView>
-    {!loggingOut && <AppBottomNav active="/profile" />}
   </SafeAreaView>;
 }
 function Icon({name,ios,color=colors.green,size=21}:{name:AndroidSymbol;ios:SFSymbol;color?:string;size?:number}) {
   return <SymbolView name={{ios,android:name,web:name}} tintColor={color} size={size}/>;
 }
 const styles = StyleSheet.create({
-  confirmAction:{flex:1,alignItems:'center'},
+  logoutMark:{width:64,height:64,borderRadius:22,backgroundColor:'#FFF0EF',alignItems:'center',justifyContent:'center',alignSelf:'center'},
+  modalTitle:{fontSize:23,fontWeight:'700',color:colors.ink,textAlign:'center'},modalCopy:{fontSize:15,lineHeight:23,color:colors.muted,textAlign:'center'},modalButton:{flex:1,minHeight:50,borderRadius:14,alignItems:'center',justifyContent:'center'},cancelButton:{backgroundColor:'#D7FBE9'},confirmButton:{backgroundColor:'#BE3946'},confirmText:{color:'#FFFFFF',fontSize:15,fontWeight:'700'},
   page:{flex:1,backgroundColor:colors.canvas},
   header:{width:'100%',maxWidth:520,alignSelf:'center',paddingHorizontal:18,paddingVertical:14,flexDirection:'row',alignItems:'center',justifyContent:'space-between'},brandGroup:{flexDirection:'row',alignItems:'center',gap:10},
   mark:{width:40,height:40,borderRadius:20,backgroundColor:'#CCF5E4',alignItems:'center',justifyContent:'center'},brand:{fontSize:20,fontWeight:'700',color:colors.green},caption:{fontSize:12,color:colors.ink},iconButton:{minWidth:44,minHeight:44,alignItems:'center',justifyContent:'center'},

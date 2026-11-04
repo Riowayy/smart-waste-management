@@ -1,8 +1,11 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { ActivityIndicator, Alert, Image, KeyboardAvoidingView, Platform, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
+import EcoModal from '../../components/eco-modal';
+import { freshLocation } from './location';
+import { useNavigationLock } from '../../components/navigation-lock';
+import { ActivityIndicator, Image, KeyboardAvoidingView, Platform, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { SymbolView, type AndroidSymbol, type SFSymbol } from 'expo-symbols';
-import { AppBottomNav } from '../dashboard/screen';
+
 import LocationMap from './location-map';
 import { pendingReport, reportBaseline, findSubmittedReports } from './recovery';
 import { categoryLabel, type HistoryReport } from './history-data';
@@ -28,6 +31,7 @@ export function validateReportForm(draft: Draft): Record<string, string[]> {
 
 export default function CreateReportScreen() {
   const auth = useAuth();
+  const { acquire } = useNavigationLock();
   const ownerId = auth.user?.id ?? 0;
   const [draft,setDraft] = useState<Draft>(pendingReport.get(ownerId)?.draft ?? {description:'',categoryId:null,photo:null,location:null});
   const [categories,setCategories] = useState<Category[]>([]);
@@ -44,9 +48,13 @@ export default function CreateReportScreen() {
   const [gpsBusy,setGpsBusy] = useState(false);
   const [gpsError,setGpsError] = useState('');
   const [photoSourceOpen,setPhotoSourceOpen] = useState(false);
+  const [locationTime,setLocationTime] = useState<number | null>(null);
   const lock = useRef(false);
   const active = useRef(true);
   const locationRevision = useRef(0);
+  const gpsRequest = useRef<AbortController | null>(null);
+  const photoChoice = useRef<{camera:boolean;release:()=>void} | null>(null);
+  useEffect(() => () => { gpsRequest.current?.abort(); photoChoice.current?.release(); locationRevision.current++; }, []);
   const photoUri = draft.photo?.uri;
   useEffect(() => {
     const uri = photoUri;
@@ -65,10 +73,11 @@ export default function CreateReportScreen() {
   useEffect(()=>{active.current=true;const c=new AbortController();void loadCategories(c.signal);return ()=>{active.current=false;c.abort();};},[loadCategories]);
   async function operation(action:()=>Promise<void>) {
     if(lock.current)return;
+    const releaseNavigation = acquire();
     lock.current=true;setBusy(true);setMessage('');
     try {await action();}
     catch(error) {if(active.current)setMessage(error instanceof Error?error.message:'Permintaan belum berhasil.');}
-    finally {lock.current=false;if(active.current)setBusy(false);}
+    finally {releaseNavigation();lock.current=false;if(active.current)setBusy(false);}
   }
   async function selectPhoto(camera:boolean) {
     if(camera && Platform.OS!=='web' && !(await Picker.requestCameraPermissionsAsync()).granted) throw new Error('Izin kamera ditolak. Pilih galeri atau izinkan kamera melalui pengaturan.');
@@ -84,15 +93,24 @@ export default function CreateReportScreen() {
     setDraft(old=>({...old,photo}));setErrors(old=>({...old,image:[]}));
   }
   function choosePhotoSource(camera: boolean) {
+    if (photoChoice.current || lock.current) return;
+    photoChoice.current = {camera, release:acquire()};
+    lock.current = true;
+    setBusy(true);
     setPhotoSourceOpen(false);
-    void operation(() => selectPhoto(camera));
+    if (Platform.OS === 'web') finishPhotoChoice();
+    else if (Platform.OS !== 'ios') requestAnimationFrame(finishPhotoChoice);
+  }
+  function finishPhotoChoice() {
+    const choice = photoChoice.current;
+    if (!choice) return;
+    photoChoice.current = null;
+    lock.current = false;
+    if (active.current) void operation(() => selectPhoto(choice.camera));
+    choice.release();
   }
   function showPhotoSources() {
-    if (Platform.OS === 'web') { setPhotoSourceOpen(value => !value); return; }
-    Alert.alert('Foto sampah', undefined, [
-      ...photoSources.map(source => ({ text: source.label, onPress: () => choosePhotoSource(source.camera) })),
-      { text: 'Batal', style: 'cancel' },
-    ], { cancelable: true });
+    if (!lock.current && !photoChoice.current) setPhotoSourceOpen(true);
   }
   async function resolveAddress(coordinates: {latitude:number;longitude:number}, revision:number) {
     let timer:ReturnType<typeof setTimeout>|undefined;
@@ -105,23 +123,24 @@ export default function CreateReportScreen() {
   }
   async function locate() {
     const revision=++locationRevision.current;
+    const controller = new AbortController();
+    gpsRequest.current = controller;
     setGpsBusy(true);setGpsError('');
     try {
     if(!(await Location.requestForegroundPermissionsAsync()).granted)throw new Error('Izin lokasi diperlukan. Izinkan lokasi melalui pengaturan lalu coba lagi.');
-    let timer:ReturnType<typeof setTimeout>|undefined;
-    try {
-      const point=await Promise.race([Location.getCurrentPositionAsync({accuracy:Location.Accuracy.Balanced}),new Promise<never>((_,reject)=>{timer=setTimeout(()=>reject(new Error('Lokasi belum ditemukan. Pastikan GPS aktif lalu coba lagi.')),20000);})]);
-      if (!active.current) return;
+      if (controller.signal.aborted) throw new Error('Pengambilan lokasi dibatalkan.');
+      const point=await freshLocation(controller.signal);
+      if (!active.current || controller.signal.aborted || revision !== locationRevision.current) return;
       const coordinates = { latitude: point.coords.latitude, longitude: point.coords.longitude };
       if (!Number.isFinite(coordinates.latitude) || Math.abs(coordinates.latitude) > 90 || !Number.isFinite(coordinates.longitude) || Math.abs(coordinates.longitude) > 180) throw new Error('Koordinat lokasi tidak valid. Coba lagi.');
       setDraft(old=>({...old,location:coordinates}));
+      setLocationTime(point.timestamp);
       setAccuracy(point.coords.accuracy); setAddress('');
       setErrors(old=>({...old,latitude:[],longitude:[]}));
       if (Platform.OS !== 'web') void resolveAddress(coordinates,revision);
-    } finally {clearTimeout(timer);}
     } catch (error) {
       if(active.current)setGpsError(error instanceof Error?error.message:'Lokasi gagal diperoleh. Coba lagi.');
-    } finally {if(active.current)setGpsBusy(false);}
+    } finally {if (gpsRequest.current === controller) gpsRequest.current = null;if(active.current)setGpsBusy(false);}
   }
   async function send() {
     if(uncertain || success || pendingReport.get(ownerId))return;
@@ -162,14 +181,14 @@ export default function CreateReportScreen() {
   function newReport() {
     locationRevision.current++;
     setPhotoSourceOpen(false);
-    setDraft({description:'',categoryId:null,photo:null,location:null});setSuccess(false);setUncertain(false);setErrors({});setAddress('');setAccuracy(null);setMessage('');
+    setDraft({description:'',categoryId:null,photo:null,location:null});setSuccess(false);setUncertain(false);setErrors({});setAddress('');setAccuracy(null);setLocationTime(null);setMessage('');
   }
   const fieldErrors=(name:string)=>errors[name]?.map((text,i)=><Text key={i} accessibilityRole="alert" style={styles.error}>{text}</Text>);
   const selectedCategory = categories.find(category=>category.id===draft.categoryId);
   const canSave = !busy && !uncertain && !success && categoryState === 'ready' && !!selectedCategory && !Object.keys(validateReportForm(draft)).length;
   const frozen = busy || uncertain;
   const photoSize = draft.photo?.file?.size ?? draft.photo?.fileSize;
-  return <SafeAreaView style={styles.page} edges={['top','left','right','bottom']}>
+  return <SafeAreaView style={styles.page} edges={['top','left','right']}>
     <View style={styles.header}>
       <View style={styles.brandGroup}><View style={styles.brandMark}><FormIcon name="eco" ios="leaf" /></View><View><Text style={styles.brand}>EcoTrack</Text><Text style={styles.brandCaption}>Laporkan</Text></View></View>
       <Link href="/profile" asChild><Pressable accessibilityRole="link" accessibilityLabel="Buka profil" disabled={busy} style={styles.avatar}><FormIcon name="person" ios="person" color="#FFFFFF" /></Pressable></Link>
@@ -195,7 +214,6 @@ export default function CreateReportScreen() {
               <View style={styles.photoBadge}><FormIcon name="check_circle" ios="checkmark.circle" size={16} color="#FFFFFF"/><Text style={styles.photoBadgeText}>1 foto terlampir{photoSize ? ` (${(photoSize/1024/1024).toFixed(1)} MB)` : ''}</Text></View>
               <View style={styles.photoActions}><View style={styles.flex}><FormAction label="Ganti Foto" icon="photo_library" ios="photo" disabled={frozen} onPress={showPhotoSources}/></View><FormAction label="Hapus" icon="delete" ios="trash" danger disabled={frozen} onPress={()=>setDraft(old=>({...old,photo:null}))}/></View>
             </View> : <Pressable accessibilityRole="button" accessibilityLabel="Tambahkan foto laporan" accessibilityState={{disabled:frozen,expanded:photoSourceOpen}} disabled={frozen} onPress={showPhotoSources} style={({pressed})=>[styles.photoEmpty,{opacity:frozen?0.5:pressed?0.75:1}]}><FormIcon name="add_photo_alternate" ios="photo.badge.plus" size={36}/></Pressable>}
-            {photoSourceOpen && Platform.OS === 'web' && <View style={styles.row}>{photoSources.map(source=><View key={source.label} style={styles.flex}><FormAction label={source.label} icon={source.icon} ios={source.ios} disabled={frozen} onPress={()=>choosePhotoSource(source.camera)}/></View>)}</View>}
             <View style={styles.info}><FormIcon name="info" ios="info.circle"/><Text style={[styles.copy,styles.flex]}>Format: JPG, PNG, WebP{ '\n' }Maks. 5 MB</Text></View>
             {fieldErrors('image')}
           </View>
@@ -214,9 +232,10 @@ export default function CreateReportScreen() {
           </View>
           <View style={styles.card}>
             <View style={styles.row}><FormIcon name="location_on" ios="mappin.circle" size={26}/><Text accessibilityRole="header" style={[styles.title,styles.flex]}>Lokasi Pengaduan <Text style={styles.required}>*</Text></Text></View>
-            <FormAction label={draft.location?"Ambil Ulang Lokasi":"Ambil Lokasi Saya"} icon="my_location" ios="location.circle" disabled={frozen} busy={gpsBusy} onPress={()=>void operation(locate)}/>
-            {!!gpsError && <Text accessibilityRole="alert" style={styles.error}>{gpsError}</Text>}
-            {gpsBusy && <Text accessibilityLiveRegion="polite" style={styles.copy}>Mengambil lokasi GPS terbaru...</Text>}
+            <FormAction label={draft.location?"Perbarui Lokasi":"Ambil Lokasi Saya"} icon="my_location" ios="location.circle" disabled={frozen} busy={gpsBusy} onPress={()=>void operation(locate)}/>
+            {!!gpsError && <Text accessibilityRole="alert" style={styles.error}>{gpsError}{draft.location ? ' Koordinat sebelumnya tetap digunakan.' : ''}</Text>}
+            {!!locationTime && <Text style={styles.copy}>Lokasi diperoleh pukul {new Date(locationTime).toLocaleTimeString('id-ID')}.</Text>}
+            {gpsBusy && <View style={styles.info}><Text accessibilityLiveRegion="polite" style={[styles.copy,styles.flex]}>Mencari lokasi terbaru. Koordinat sebelumnya tetap aman.</Text><FormAction label="Batalkan GPS" onPress={()=>gpsRequest.current?.abort()}/></View>}
             <View style={styles.locationBox}>
               {draft.location ? <LocationMap key={`${draft.location.latitude}/${draft.location.longitude}`} point={draft.location}/> : <View style={styles.locationVisual}><FormIcon name="location_searching" ios="mappin.circle" size={36}/><Text style={styles.locationTitle}>Lokasi belum diambil</Text><Text style={styles.locationHint}>Lokasi perangkat melalui izin GPS</Text></View>}
               {!!address && <View style={styles.row}><FormIcon name="location_on" ios="mappin" size={18}/><View style={styles.flex}><Text style={styles.smallLabel}>Alamat</Text><Text style={styles.copy}>{address}</Text></View></View>}
@@ -229,15 +248,22 @@ export default function CreateReportScreen() {
         </>}
       </ScrollView>
     </KeyboardAvoidingView>
-    {!busy && <AppBottomNav active="/create-report"/>}
+    <EcoModal visible={photoSourceOpen} sheet onClose={()=>setPhotoSourceOpen(false)} onDismiss={finishPhotoChoice}>
+      {photoSourceOpen && <>
+        <Text accessibilityRole="header" style={styles.title}>Tambah foto sampah</Text>
+        <Text style={styles.copy}>Pilih sumber foto untuk melanjutkan pelaporan.</Text>
+        {photoSources.map(source=><FormAction key={source.label} large label={source.label} icon={source.icon} ios={source.ios} onPress={()=>choosePhotoSource(source.camera)}/>)}
+        <FormAction label="Batal" onPress={()=>setPhotoSourceOpen(false)}/>
+      </>}
+    </EcoModal>
   </SafeAreaView>;
 }
 function FormIcon({name,ios,color='#006C49',size=21}:{name:AndroidSymbol;ios:SFSymbol;color?:string;size?:number}) {
   return <SymbolView name={{ios,android:name,web:name}} tintColor={color} size={size}/>;
 }
-function FormAction({label,onPress,disabled=false,busy=false,primary=false,danger=false,icon,ios}:{label:string;onPress:()=>void;disabled?:boolean;busy?:boolean;primary?:boolean;danger?:boolean;icon?:AndroidSymbol;ios?:SFSymbol}) {
+function FormAction({label,onPress,disabled=false,busy=false,primary=false,danger=false,large=false,icon,ios}:{label:string;onPress:()=>void;disabled?:boolean;busy?:boolean;primary?:boolean;danger?:boolean;large?:boolean;icon?:AndroidSymbol;ios?:SFSymbol}) {
   const color=primary?'#FFFFFF':danger?'#A92330':'#006C49';
-  return <Pressable accessibilityRole="button" accessibilityLabel={label} accessibilityState={{disabled,busy}} disabled={disabled} onPress={onPress} style={({pressed})=>[styles.button,primary&&styles.primary,danger&&styles.danger,{opacity:disabled?0.5:pressed?0.75:1}]}>{busy?<ActivityIndicator color={color}/>:icon&&ios?<FormIcon name={icon} ios={ios} color={color}/>:null}<Text style={[styles.buttonText,{color}]}>{label}</Text></Pressable>;
+  return <Pressable accessibilityRole="button" accessibilityLabel={label} accessibilityState={{disabled,busy}} disabled={disabled} onPress={onPress} style={({pressed})=>[styles.button,large&&styles.largeChoice,primary&&styles.primary,danger&&styles.danger,{opacity:disabled?0.5:pressed?0.75:1}]}>{busy?<ActivityIndicator color={color}/>:icon&&ios?<FormIcon name={icon} ios={ios} color={color}/>:null}<Text style={[styles.buttonText,{color}]}>{label}</Text></Pressable>;
 }
 const styles=StyleSheet.create({
   flex:{flex:1}, page:{flex:1,backgroundColor:'#E7FFF3'},
@@ -254,6 +280,7 @@ const styles=StyleSheet.create({
   select:{flexDirection:'row',alignItems:'center',gap:10,minHeight:54,padding:13,borderRadius:13,backgroundColor:'#D7FBE9'},options:{backgroundColor:'#EFFBF5',borderRadius:13,padding:5},option:{minHeight:48,padding:10,flexDirection:'row',alignItems:'center',gap:8},
   descriptionBox:{padding:13,borderRadius:13,backgroundColor:'#D7FBE9',gap:8},textarea:{minHeight:126,fontSize:14,lineHeight:23,color:'#102D23',padding:0},counter:{textAlign:'right',fontSize:12,color:'#52665D'},
   locationBox:{padding:12,borderRadius:13,backgroundColor:'#D7FBE9',gap:10},locationVisual:{minHeight:125,padding:12,borderRadius:12,backgroundColor:'#BFEEDA',alignItems:'center',justifyContent:'center',gap:6},locationTitle:{fontSize:14,fontWeight:'600',color:'#006C49'},locationHint:{fontSize:12,lineHeight:18,color:'#315B49'},coordinates:{fontSize:14,color:'#233F32',fontVariant:['tabular-nums']},smallLabel:{fontSize:12,color:'#52665D'},
+  largeChoice:{minHeight:68,borderRadius:16},
   button:{minHeight:46,paddingHorizontal:13,paddingVertical:10,borderRadius:12,backgroundColor:'#D2F6E5',flexDirection:'row',alignItems:'center',justifyContent:'center',gap:8},buttonText:{fontSize:14,fontWeight:'600'},primary:{minHeight:54,borderRadius:16,backgroundColor:'#006C49'},danger:{backgroundColor:'#FFE2DF'},
   error:{color:'#A92330',fontSize:13,lineHeight:20},errorCard:{padding:16,borderRadius:16,backgroundColor:'#FFF2F0',gap:10},textLink:{color:'#006C49',fontSize:14,fontWeight:'600',paddingVertical:10},
 });

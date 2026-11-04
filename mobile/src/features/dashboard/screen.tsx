@@ -161,27 +161,6 @@ export function DashboardContent({ data }: { data: Dashboard }) {
   </>;
 }
 
-const navigation: { href: '/' | '/reports' | '/create-report' | '/profile'; label: string; icon: AndroidSymbol; activeIcon: AndroidSymbol; ios: SFSymbol }[] = [
-  { href: '/' as const, label: 'Beranda', icon: 'home', activeIcon: 'home_filled', ios: 'house.fill' as const },
-  { href: '/reports' as const, label: 'Riwayat', icon: 'history', activeIcon: 'history', ios: 'clock.arrow.circlepath' as const },
-  { href: '/create-report' as const, label: 'Laporkan', icon: 'edit_square', activeIcon: 'edit_square', ios: 'square.and.pencil' as const },
-  { href: '/profile' as const, label: 'Profil', icon: 'person', activeIcon: 'person', ios: 'person.fill' as const },
-];
-
-export function AppBottomNav({ active = '/' }: { active?: '/' | '/reports' | '/create-report' | '/profile' }) {
-  return <View style={styles.bottomNav}>
-    {navigation.map(item => {
-      const selected = item.href === active;
-      return <Link key={item.href} href={item.href} asChild>
-      <Pressable accessibilityRole="link" accessibilityLabel={item.label} accessibilityState={{ selected }} style={styles.navItem}>
-        <EcoSymbol ios={item.ios} material={selected ? item.activeIcon : item.icon} color={selected ? palette.forest : palette.muted} size={21} />
-        <Text style={[styles.navLabel, selected && styles.navLabelActive]}>{item.label}</Text>
-      </Pressable>
-    </Link>;
-    })}
-  </View>;
-}
-
 export default function DashboardScreen() {
   const auth = useAuth();
   const { restore } = auth;
@@ -216,7 +195,7 @@ export default function DashboardScreen() {
     return () => request.current?.abort();
   }, [load]));
 
-  return <SafeAreaView edges={['top', 'left', 'right', 'bottom']} style={styles.page}>
+  return <SafeAreaView edges={['top', 'left', 'right']} style={styles.page}>
     <ScrollView
       contentContainerStyle={styles.content}
       refreshControl={<RefreshControl refreshing={loading && data !== null} onRefresh={() => void load()} tintColor={palette.forest} />}
@@ -240,7 +219,6 @@ export default function DashboardScreen() {
       </View> : null}
       {data ? <DashboardContent data={data} /> : null}
     </ScrollView>
-    <AppBottomNav />
   </SafeAreaView>;
 }
 
@@ -306,8 +284,4 @@ const styles = StyleSheet.create({
   errorHint: { color: palette.muted, fontSize: 12, lineHeight: 18 },
   retryButton: { minHeight: 38, alignSelf: 'flex-start', justifyContent: 'center', paddingHorizontal: 13, borderRadius: 12, backgroundColor: palette.surface },
   retryText: { color: palette.forest, fontSize: 13, fontWeight: '700' },
-  bottomNav: { minHeight: 65, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-around', borderTopWidth: StyleSheet.hairlineWidth, borderTopColor: palette.line, backgroundColor: palette.canvas, paddingHorizontal: 7 },
-  navItem: { minWidth: 65, minHeight: 54, alignItems: 'center', justifyContent: 'center', gap: 3, paddingHorizontal: 5 },
-  navLabel: { color: palette.muted, fontSize: 12, lineHeight: 16, fontWeight: '600' },
-  navLabelActive: { color: palette.forest, fontWeight: '700' },
 });
