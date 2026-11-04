@@ -57,6 +57,6 @@ return Application::configure(basePath: dirname(__DIR__))
                 'message' => $message,
                 'data' => null,
                 'errors' => $exception instanceof ValidationException ? $exception->errors() : null,
-            ], $status);
+            ], $status, $exception instanceof HttpExceptionInterface ? $exception->getHeaders() : []);
         });
     })->create();

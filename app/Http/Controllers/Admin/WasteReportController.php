@@ -55,6 +55,9 @@ class WasteReportController extends Controller
     {
         $validated = $request->validated();
         $imagePath = $request->file('image')->store('waste-reports', 'public');
+        if (! $imagePath) {
+            throw new \RuntimeException('Penyimpanan foto laporan gagal.');
+        }
 
         try {
             $report = DB::transaction(fn () => WasteReport::create([
@@ -103,6 +106,9 @@ class WasteReportController extends Controller
         $newImagePath = $request->hasFile('image')
             ? $request->file('image')->store('waste-reports', 'public')
             : null;
+        if ($newImagePath === false) {
+            throw new \RuntimeException('Penyimpanan foto laporan gagal.');
+        }
 
         try {
             DB::transaction(function () use ($validated, $report, $newImagePath): void {
