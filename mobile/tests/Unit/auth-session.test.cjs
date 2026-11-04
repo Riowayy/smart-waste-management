@@ -15,9 +15,9 @@ test('validasi Indonesia dan error API diteruskan',async()=>{const s=setup(422);
 test('protected routes hanya merender route sesuai sesi dan menahan navigasi saat loading',()=>{
  const React=require('react');const {renderToStaticMarkup}=require('react-dom/server');
  for(const user of [null,{id:1}])for(const status of ['ready','loading']){
-  const Stack=({children})=>children;Stack.Protected=({guard,children})=>guard?children:null;Stack.Screen=({name})=>React.createElement('span',null,name);
+  const Stack=({children})=>children;Stack.Protected=function Protected({guard,children}) {return guard?children:null;};Stack.Screen=function Screen({name}) {return React.createElement('span',null,name);};
   const module={exports:{}};const source=ts.transpileModule(fs.readFileSync('src/app/_layout.tsx','utf8'),{compilerOptions:{module:ts.ModuleKind.CommonJS,target:ts.ScriptTarget.ES2022,jsx:ts.JsxEmit.ReactJSX}}).outputText;
-  const deps={'expo-router':{Stack},'react-native':{ActivityIndicator:()=>null,Text:({children})=>children},'../features/auth/provider':{AuthProvider:({children})=>children,useAuth:()=>({user,status})},'../features/auth/screen':{Action:()=>null,AuthShell:({children})=>children,styles:{}}};
+  const deps={'../components/authenticated-layout':{__esModule:true,default:({children})=>children},'expo-router':{Stack},'react-native':{ActivityIndicator:()=>null,Text:({children})=>children},'../features/auth/provider':{AuthProvider:({children})=>children,useAuth:()=>({user,status})},'../features/auth/screen':{Action:()=>null,AuthShell:({children})=>children,styles:{}}};
   vm.runInNewContext('(function(require,module,exports){'+source+'})')(name=>deps[name]??require(name),module,module.exports);
   const html=renderToStaticMarkup(React.createElement(module.exports.default));
   if(status==='loading')assert.equal(html,'');else if(user){assert.ok(html.includes('index'));assert.ok(html.includes('reports'));assert.ok(html.includes('create-report'));assert.ok(!html.includes('login'));}else{assert.ok(html.includes('login'));assert.ok(html.includes('register'));assert.ok(!html.includes('index'));assert.ok(!html.includes('reports'));assert.ok(!html.includes('create-report'));}

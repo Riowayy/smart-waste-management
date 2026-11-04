@@ -6,6 +6,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { Link, useFocusEffect } from 'expo-router';
 import { ApiError } from '../../services/api/client';
 import { useAuth } from '../auth/provider';
+import { categoryLabel } from '../reporting/history-data';
 import { formatReportDate, getDashboard, statusLabels, type Dashboard, type RecentReport, type ReportStatus } from './service';
 
 const palette = {
@@ -61,18 +62,19 @@ function StatusBadge({ status }: { status: ReportStatus }) {
 }
 
 export function ReportRow({ report }: { report: RecentReport }) {
+  const categoryName = categoryLabel(report);
   return <View style={styles.reportCard}>
     <View style={styles.reportTopLine}>
       <StatusBadge status={report.status} />
       <Text style={styles.reportDate} numberOfLines={1}>{formatReportDate(report.created_at)}</Text>
     </View>
     <View style={styles.reportBody}>
-      <ReportImage uri={report.image_url} label={`Foto laporan ${report.category?.name ?? 'sampah'}`} style={styles.reportImage}/>
+      <ReportImage uri={report.image_url} label={`Foto laporan ${categoryName}`} style={styles.reportImage}/>
       <View style={styles.reportCopy}>
         <Text style={styles.reportDescription} numberOfLines={2}>{report.description}</Text>
         <View style={styles.categoryLine}>
           <EcoSymbol ios="tag" material="category" color={palette.muted} size={15} />
-          <Text style={styles.category} numberOfLines={1}>{report.category?.name ?? 'Tanpa kategori'}</Text>
+          <Text style={styles.category} numberOfLines={1}>{categoryName}</Text>
         </View>
       </View>
     </View>
@@ -109,10 +111,6 @@ export function DashboardContent({ data }: { data: Dashboard }) {
           <Text style={styles.totalLabel}>Total laporan Anda</Text>
           <Text style={styles.totalCaption}>Akumulasi laporan yang dikirim</Text>
         </View>
-        <View style={styles.sourceTag}>
-          <EcoSymbol ios="checkmark.icloud.fill" material="cloud_done" color={palette.forest} size={15} />
-          <Text style={styles.sourceText}>Data server</Text>
-        </View>
       </View>
       <View style={styles.totalValueLine}>
         <Text style={styles.totalValue}>{data.statistics.total}</Text>
@@ -140,10 +138,7 @@ export function DashboardContent({ data }: { data: Dashboard }) {
 
     <View style={styles.recentSection}>
       <View style={styles.recentHeading}>
-        <View style={styles.recentTitleGroup}>
-          <Text accessibilityRole="header" style={styles.sectionTitle}>Laporan terbaru</Text>
-          <View style={styles.recentCount}><Text style={styles.recentCountText}>{reports.length}</Text></View>
-        </View>
+        <Text accessibilityRole="header" style={styles.sectionTitle}>Laporan terbaru</Text>
         <Link href="/reports" style={styles.viewAll}>Lihat semua <Text style={styles.chevron}>›</Text></Link>
       </View>
       <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.filters}>
@@ -166,35 +161,15 @@ export function DashboardContent({ data }: { data: Dashboard }) {
   </>;
 }
 
-const navigation: { href: '/' | '/reports' | '/create-report' | '/profile'; label: string; icon: AndroidSymbol; activeIcon: AndroidSymbol; ios: SFSymbol }[] = [
-  { href: '/' as const, label: 'Beranda', icon: 'home', activeIcon: 'home_filled', ios: 'house.fill' as const },
-  { href: '/reports' as const, label: 'Riwayat', icon: 'history', activeIcon: 'history', ios: 'clock.arrow.circlepath' as const },
-  { href: '/create-report' as const, label: 'Laporkan', icon: 'edit_square', activeIcon: 'edit_square', ios: 'square.and.pencil' as const },
-  { href: '/profile' as const, label: 'Profil', icon: 'person', activeIcon: 'person', ios: 'person.fill' as const },
-];
-
-export function AppBottomNav({ active = '/' }: { active?: '/' | '/reports' | '/create-report' | '/profile' }) {
-  return <View style={styles.bottomNav}>
-    {navigation.map(item => {
-      const selected = item.href === active;
-      return <Link key={item.href} href={item.href} asChild>
-      <Pressable accessibilityRole="link" accessibilityLabel={item.label} accessibilityState={{ selected }} style={styles.navItem}>
-        <EcoSymbol ios={item.ios} material={selected ? item.activeIcon : item.icon} color={selected ? palette.forest : palette.muted} size={21} />
-        <Text style={[styles.navLabel, selected && styles.navLabelActive]}>{item.label}</Text>
-      </Pressable>
-    </Link>;
-    })}
-  </View>;
-}
-
 export default function DashboardScreen() {
   const auth = useAuth();
+  const { restore } = auth;
   const [data, setData] = useState<Dashboard | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const request = useRef<AbortController | null>(null);
 
-  async function load() {
+  const load = useCallback(async () => {
     request.current?.abort();
     const controller = new AbortController();
     request.current = controller;
@@ -208,31 +183,24 @@ export default function DashboardScreen() {
       if (failure instanceof ApiError && (failure.status === 401 || failure.status === 403)) {
         setData(null);
         setError('Sesi tidak tersedia. Silakan periksa sesi kembali.');
-        await auth.restore();
+        await restore();
       } else setError('Dashboard belum dapat dimuat. Periksa koneksi lalu coba lagi.');
     } finally {
       if (!controller.signal.aborted) setLoading(false);
     }
-  }
+  }, [restore]);
 
   useFocusEffect(useCallback(() => {
     void load();
     return () => request.current?.abort();
-  }, []));
+  }, [load]));
 
-  return <SafeAreaView edges={['top', 'left', 'right', 'bottom']} style={styles.page}>
+  return <SafeAreaView edges={['top', 'left', 'right']} style={styles.page}>
     <ScrollView
       contentContainerStyle={styles.content}
       refreshControl={<RefreshControl refreshing={loading && data !== null} onRefresh={() => void load()} tintColor={palette.forest} />}
     >
       <DashboardHeader />
-      <View style={styles.refreshStatus}>
-        {loading ? <ActivityIndicator size="small" color={palette.forest} /> : <EcoSymbol ios="arrow.triangle.2.circlepath" material="sync" color={palette.forest} size={16} />}
-        <Text style={styles.refreshStatusText}>{loading ? 'Memuat pembaruan' : 'Data laporan tersinkron dari server'}</Text>
-        <Pressable accessibilityRole="button" accessibilityLabel="Perbarui dashboard" accessibilityState={{ busy: loading }} disabled={loading} onPress={() => void load()} style={styles.refreshButton}>
-          <EcoSymbol ios="arrow.clockwise" material="refresh" color={palette.forest} size={18} />
-        </Pressable>
-      </View>
       <View style={styles.greeting}>
         <Text accessibilityRole="header" style={styles.greetingTitle}>Halo, {auth.user?.name ?? 'Pengguna'}!</Text>
         <Text style={styles.greetingCopy}>Terima kasih telah berkontribusi menjaga kebersihan dan kelestarian lingkungan.</Text>
@@ -251,7 +219,6 @@ export default function DashboardScreen() {
       </View> : null}
       {data ? <DashboardContent data={data} /> : null}
     </ScrollView>
-    <AppBottomNav />
   </SafeAreaView>;
 }
 
@@ -263,9 +230,6 @@ const styles = StyleSheet.create({
   brandMark: { width: 42, height: 42, alignItems: 'center', justifyContent: 'center', borderRadius: 14, backgroundColor: palette.forest },
   brand: { color: palette.forest, fontSize: 21, fontWeight: '700', letterSpacing: -0.45 },
   profileButton: { width: 42, height: 42, alignItems: 'center', justifyContent: 'center', borderRadius: 21, backgroundColor: palette.forest },
-  refreshStatus: { minHeight: 38, alignSelf: 'center', flexDirection: 'row', alignItems: 'center', gap: 8, paddingLeft: 13, paddingRight: 4, borderRadius: 22, backgroundColor: '#D5F5E6' },
-  refreshStatusText: { color: palette.forest, fontSize: 12, fontWeight: '600' },
-  refreshButton: { width: 34, height: 34, alignItems: 'center', justifyContent: 'center', borderRadius: 17 },
   greeting: { gap: 5, paddingTop: 1 },
   greetingTitle: { color: palette.ink, fontSize: 27, lineHeight: 34, fontWeight: '700', letterSpacing: -0.7 },
   greetingCopy: { color: '#52665D', fontSize: 15, lineHeight: 22 },
@@ -279,8 +243,6 @@ const styles = StyleSheet.create({
   totalLabels: { flex: 1, gap: 2 },
   totalLabel: { color: '#52665D', fontSize: 14, fontWeight: '600' },
   totalCaption: { color: palette.muted, fontSize: 12, fontWeight: '500' },
-  sourceTag: { flexDirection: 'row', alignItems: 'center', gap: 4, paddingHorizontal: 9, paddingVertical: 6, borderRadius: 13, backgroundColor: '#D9F6E9' },
-  sourceText: { color: palette.forest, fontSize: 11, fontWeight: '700' },
   totalValueLine: { flexDirection: 'row', alignItems: 'baseline', gap: 8 },
   totalValue: { color: '#111A16', fontSize: 34, lineHeight: 40, fontWeight: '700', fontVariant: ['tabular-nums'] },
   totalUnit: { color: palette.muted, fontSize: 14 },
@@ -294,9 +256,6 @@ const styles = StyleSheet.create({
   statusCaption: { color: '#52665D', fontSize: 14, fontWeight: '600' },
   recentSection: { gap: 13, marginTop: 2 },
   recentHeading: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 8 },
-  recentTitleGroup: { flexDirection: 'row', alignItems: 'center', gap: 9 },
-  recentCount: { width: 23, height: 23, alignItems: 'center', justifyContent: 'center', borderRadius: 12, backgroundColor: '#CFF4E3' },
-  recentCountText: { color: palette.forest, fontSize: 12, fontWeight: '700' },
   viewAll: { color: palette.forest, fontSize: 14, fontWeight: '700', paddingVertical: 7 },
   chevron: { fontSize: 19, lineHeight: 18 },
   filters: { flexDirection: 'row', alignItems: 'center', gap: 8, paddingRight: 18 },
@@ -325,8 +284,4 @@ const styles = StyleSheet.create({
   errorHint: { color: palette.muted, fontSize: 12, lineHeight: 18 },
   retryButton: { minHeight: 38, alignSelf: 'flex-start', justifyContent: 'center', paddingHorizontal: 13, borderRadius: 12, backgroundColor: palette.surface },
   retryText: { color: palette.forest, fontSize: 13, fontWeight: '700' },
-  bottomNav: { minHeight: 65, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-around', borderTopWidth: StyleSheet.hairlineWidth, borderTopColor: palette.line, backgroundColor: palette.canvas, paddingHorizontal: 7 },
-  navItem: { minWidth: 65, minHeight: 54, alignItems: 'center', justifyContent: 'center', gap: 3, paddingHorizontal: 5 },
-  navLabel: { color: palette.muted, fontSize: 12, lineHeight: 16, fontWeight: '600' },
-  navLabelActive: { color: palette.forest, fontWeight: '700' },
 });

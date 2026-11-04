@@ -8,7 +8,7 @@ const source = ts.transpileModule(fs.readFileSync('src/features/reporting/histor
   compilerOptions: { module: ts.ModuleKind.CommonJS },
 }).outputText;
 vm.runInNewContext('(function(module,exports){' + source + '})')(moduleValue, moduleValue.exports);
-const { visibleHistory, locationLabel } = moduleValue.exports;
+const { visibleHistory, locationLabel, reportCoordinates, googleMapsUrl, categoryLabel } = moduleValue.exports;
 const reports = [
   { id: 12, category: { slug: 'plastic-waste', name: 'Plastic Waste' }, description: 'Botol', latitude: 0, longitude: 180, created_at: '2026-11-01T08:00:00Z' },
   { id: 13, category: null, description: 'Daun', latitude: null, longitude: null, created_at: '2026-11-02T08:00:00Z' },
@@ -26,4 +26,27 @@ test('urutan tanggal lokal tidak memutasi data halaman dari API', () => {
   assert.equal(visibleHistory(reports, '', false)[0].id, 13);
   assert.equal(visibleHistory(reports, '', true)[0].id, 12);
   assert.equal(reports[0].id, 12);
+});
+
+test('koordinat detail menerima nol dan batas rentang, menolak pasangan kosong atau tidak valid', () => {
+  for (const point of [{ latitude: 0, longitude: 0 }, { latitude: -90, longitude: 180 }]) {
+    const valid = reportCoordinates(point);
+    assert.equal(valid.latitude, point.latitude);
+    assert.equal(valid.longitude, point.longitude);
+    const url = new URL(googleMapsUrl(valid));
+    assert.equal(url.searchParams.get('query'), `${point.latitude},${point.longitude}`);
+  }
+  for (const point of [{ latitude: null, longitude: 0 }, { latitude: 0, longitude: undefined }, { latitude: NaN, longitude: 0 }, { latitude: 91, longitude: 0 }, { latitude: 0, longitude: -181 }]) {
+    assert.equal(reportCoordinates(point), null);
+    assert.equal(locationLabel(point), 'Lokasi tidak tersedia');
+  }
+});
+
+test('label kategori bersama menerjemahkan slug atau nama standar dan mempertahankan kategori lain', () => {
+  for (const [name,slug,label] of [['Organic Waste','organic-waste','Sampah Organik'],['Plastic Waste','plastic-waste','Sampah Plastik'],['Paper Waste','paper-waste','Sampah Kertas']]) {
+    assert.equal(categoryLabel({category:{name,slug}}),label);
+    assert.equal(categoryLabel({category:{name}}),label);
+  }
+  assert.equal(categoryLabel({category:{name:'Kategori dari API',slug:'kategori-khusus'}}),'Kategori dari API');
+  assert.equal(categoryLabel({category:null}),'Tanpa kategori');
 });

@@ -2,7 +2,7 @@ import { Platform } from 'react-native';
 import { File as NativeFile } from 'expo-file-system';
 import type { ImagePickerAsset } from 'expo-image-picker';
 import { apiClient, ApiError } from '../../services/api/client';
-export interface Category { id: number; name: string }
+export interface Category { id: number; name: string; slug?: string }
 export interface Coordinates { latitude: number; longitude: number }
 export interface Draft { description: string; categoryId: number | null; photo: ImagePickerAsset | null; location: Coordinates | null }
 export const MAX_IMAGE_BYTES = 5 * 1024 * 1024;
