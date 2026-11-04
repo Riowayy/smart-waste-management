@@ -51,3 +51,25 @@ Konfigurasi Web memakai `output: "server"`; deployment membutuhkan runtime serve
 ## Konteks proyek
 
 Baca `AGENTS.md`, `../AGENTS.md`, dan seluruh `instrucktor/` sebelum mengubah kode. Kontrak backend berada di `../docs/API.md`. Dependency dan versi stack dipertahankan selama pembersihan template.
+
+## Autentikasi (TASK 002)
+
+Halaman /login dan /register tersedia. AuthProvider/useAuth memulihkan sesi dengan /auth/me dan melindungi index menggunakan Stack.Protected. Formulir memakai client TASK 001. Index menampilkan dashboard TASK 003; index dan reports dilindungi Stack.Protected.
+
+Pemulihan sesi yang gagal karena jaringan dapat dicoba kembali; token invalid dibersihkan. Logout yang gagal karena jaringan mempertahankan sesi sampai pencabutan token berhasil atau server menyatakan token sudah invalid. Web tetap memakai token di memori (reload mengakhiri sesi lokal). TASK 002.1 telah memverifikasi API nyata: login 200, auth/me 200, logout 200, dan auth/me dengan token yang dicabut 401. Pengujian perangkat tetap terpisah.
+
+Jalankan seluruh unit test dari mobile: `node --test tests/Unit/*.test.cjs`.
+
+## Dashboard (TASK 003)
+
+Dashboard memakai GET /api/v1/dashboard melalui client terpusat untuk statistik dan maksimal lima laporan terbaru. Tersedia identitas pengguna, kategori nullable, tanggal Indonesia, status, loading, retry, empty state, tombol perbarui, dan pull-to-refresh. Data sebelumnya tetap tampil jika refresh gagal; respons 401/403 memicu pemeriksaan ulang sesi. Request dibatalkan saat refresh ulang atau unmount.
+
+Navigasi /reports sudah terlindungi, tetapi hanya halaman tujuan sementara; riwayat lengkap belum diimplementasikan. Tidak ada dependency baru atau perubahan backend.
+
+## Pelaporan sampah (TASK 004)
+
+Buka **Buat laporan sampah** dari dashboard. Form menyediakan deskripsi wajib (maksimal 10.000 karakter), kategori opsional dari API, foto wajib JPEG/PNG/WebP maksimal 5 MB, serta lokasi opsional dengan izin foreground. Foto dapat dipreview, diganti, dan dihapus; lokasi dapat dihapus sebelum pengiriman.
+
+POST reports memakai multipart dan Bearer dari client existing. Web mengirim File; Android/iOS descriptor URI. Setelah respons berhasil, layar konfirmasi menyediakan tombol kembali ke dashboard; dashboard mengambil data baru setiap mendapat fokus. Submit bersamaan dikunci. Respons jaringan/timeout yang tidak pasti meminta pengguna memeriksa dashboard, tanpa retry otomatis; backend belum menyediakan idempotency key.
+
+Dependency Expo ditambah melalui expo install: expo-image-picker dan expo-location. Plugin mengatur teks izin kamera/foto/lokasi, tanpa izin mikrofon dan tanpa pelacakan lokasi background. Kamera Web tergantung dukungan browser/perangkat; lokasi Web memerlukan secure context (HTTPS atau localhost). Build native baru diperlukan untuk perubahan plugin izin. Uji kamera/GPS dan upload pada perangkat nyata sebelum rilis.

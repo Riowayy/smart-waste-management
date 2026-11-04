@@ -30,6 +30,20 @@
           "image": "./assets/images/splash-icon.png",
           "imageWidth": 76
         }
+      ],
+      [
+        "expo-image-picker",
+        {
+          "photosPermission": "Pilih foto untuk laporan sampah.",
+          "cameraPermission": "Ambil foto untuk laporan sampah.",
+          "microphonePermission": false
+        }
+      ],
+      [
+        "expo-location",
+        {
+          "locationWhenInUsePermission": "Gunakan lokasi saat ini untuk laporan sampah."
+        }
       ]
     ],
     "experiments": {
