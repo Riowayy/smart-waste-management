@@ -34,11 +34,14 @@ Never assume that previous documentation perfectly represents the current source
 
 ## 3. Mandatory Skills
 
-Every code-changing task MUST use these three skills:
+Setiap sesi dan setiap perubahan kode WAJIB menggunakan enam skill berikut:
 
 1. `lean-code`
 2. `planning`
-3. `project context`
+3. `project-context`
+4. `design-taste-frontend`
+5. `emil-design-eng`
+6. `impeccable`
 
 Local skills directory:
 
@@ -316,7 +319,7 @@ For every task, follow this workflow:
 
 1. Understand the request.
 2. Read relevant project context.
-3. Read and apply the three mandatory skills.
+3. Read and apply the six mandatory skills.
 4. Inspect the existing implementation.
 5. Check official documentation when required.
 6. Create an implementation plan.
@@ -340,3 +343,7 @@ Every completed task must include:
 Never report untested functionality as completed.
 
 **Primary objective: Build a lightweight, reliable, secure, and professional EcoTrack mobile application without disrupting the existing Laravel website and backend architecture.**
+
+## Kebijakan enam skill wajib (TASK 004)
+
+Pada setiap sesi dan setiap perubahan kode, wajib baca dan terapkan keenam skill berikut dari C:/Users/Nazriel Fahri/.agents/skills: lean-code, planning, project-context, design-taste-frontend, emil-design-eng, impeccable. Verifikasi nama folder dan SKILL.md sebenarnya; laporkan jika tidak ditemukan. Terapkan bagian relevan untuk tugas, jangan hanya menyebut nama. Skill tambahan diperbolehkan bila relevan. Instruksi eksplisit pengguna mengungguli workflow skill, termasuk larangan screenshot. Aturan ini melengkapi daftar dan contoh workflow lama di dokumen ini.

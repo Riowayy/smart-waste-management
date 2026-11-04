@@ -36,7 +36,7 @@ Do not assume a skill exists without checking its actual directory.
 
 ## 3. Mandatory Skills
 
-The following three skills are mandatory for every code-changing task.
+The following six skills are mandatory for every session and every code-changing task.
 
 ### A. lean-code
 
@@ -86,7 +86,7 @@ For larger tasks, produce a more detailed implementation plan.
 
 For small tasks, use a concise plan.
 
-### C. project context
+### C. project-context
 
 Purpose:
 
@@ -106,6 +106,18 @@ Mandatory principles:
 Application:
 
 Use this skill before making architectural decisions, implementing features, or changing existing code.
+
+### D. design-taste-frontend
+
+Terapkan hierarki app screen, data nyata, konsistensi brand, dan form yang mudah dipindai.
+
+### E. emil-design-eng
+
+Terapkan feedback interaksi, ukuran target sentuh, loading, dan gerak seperlunya.
+
+### F. impeccable
+
+Terapkan mode Operate, konteks visual existing, aksesibilitas, error recovery, dan pemeriksaan kualitas. Instruksi pengguna mengungguli langkah screenshot.
 
 ## 4. Mandatory Skill Execution Workflow
 
@@ -127,7 +139,7 @@ LOAD PLANNING SKILL
 ANALYZE EXISTING IMPLEMENTATION
      |
      v
-LOAD LEAN-CODE SKILL
+LOAD LEAN-CODE + DESIGN-TASTE-FRONTEND + EMIL-DESIGN-ENG + IMPECCABLE
      |
      v
 IMPLEMENT CHANGES
@@ -139,7 +151,7 @@ TEST AND REVIEW
 REPORT RESULTS
 ```
 
-All three mandatory skills must be considered and applied.
+All six mandatory skills must be considered and applied.
 
 Reading a skill file without applying its relevant instructions does not count as using that skill.
 
@@ -192,7 +204,7 @@ Before using an online skill:
 
 Prefer existing local skills whenever they sufficiently cover the task.
 
-Do not replace the three mandatory skills with online alternatives.
+Do not replace the six mandatory skills with online alternatives.
 
 ## 7. Playwright Skill and Browser Testing
 
@@ -246,7 +258,7 @@ Never rely exclusively on an older Expo skill or outdated documentation.
 
 When selecting skills:
 
-- Use the three mandatory skills first.
+- Use the six mandatory skills first.
 - Select additional skills based on the actual task.
 - Avoid loading unrelated skills.
 - Avoid duplicate skills with overlapping responsibilities.
@@ -265,7 +277,10 @@ Skills Applied:
 [Mandatory]
 - lean-code
 - planning
-- project context
+- project-context
+- design-taste-frontend
+- emil-design-eng
+- impeccable
 
 [Additional]
 - Relevant skills selected for the task
@@ -293,4 +308,8 @@ The objective is to make Codex:
 - Test actual functionality.
 - Avoid unnecessary modifications.
 
-**Every development task must follow the three mandatory skills: lean-code, planning, and project context.**
+**Every development task must follow the six mandatory skills: lean-code, planning, project-context, design-taste-frontend, emil-design-eng, impeccable.**
+
+## Kebijakan enam skill wajib (TASK 004)
+
+Pada setiap sesi dan setiap perubahan kode, wajib baca dan terapkan keenam skill berikut dari C:/Users/Nazriel Fahri/.agents/skills: lean-code, planning, project-context, design-taste-frontend, emil-design-eng, impeccable. Verifikasi nama folder dan SKILL.md sebenarnya; laporkan jika tidak ditemukan. Terapkan bagian relevan untuk tugas, jangan hanya menyebut nama. Skill tambahan diperbolehkan bila relevan. Instruksi eksplisit pengguna mengungguli workflow skill, termasuk larangan screenshot. Aturan ini melengkapi daftar dan contoh workflow lama di dokumen ini.

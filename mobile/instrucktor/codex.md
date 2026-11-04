@@ -49,7 +49,7 @@ Every task MUST follow this workflow.
 Before writing code:
 
 1. Read relevant project instructions.
-2. Read the three mandatory skills.
+2. Read the six mandatory skills.
 3. Inspect the current implementation.
 4. Identify related components and dependencies.
 5. Check existing API contracts when relevant.
@@ -325,7 +325,7 @@ For every session and code change:
 
 1. Inspect `C:\Users\Nazriel Fahri\.agents\skills`.
 2. Read and apply all skills relevant to the current task.
-3. Always apply `lean-code`, `planning`, and `project-context`.
+3. Pada setiap sesi dan perubahan kode, terapkan `lean-code`, `planning`, `project-context`, `design-taste-frontend`, `emil-design-eng`, dan `impeccable`.
 4. Additional local and trusted online skills are permitted.
 5. Never claim to use skills that were not inspected and applied.
 
@@ -372,3 +372,7 @@ Write the smallest amount of code that correctly solves the problem without sacr
 
 
 The objective is to deliver a working EcoTrack Mobile application without disrupting the existing Laravel website and backend.
+
+## Kebijakan enam skill wajib (TASK 004)
+
+Pada setiap sesi dan setiap perubahan kode, wajib baca dan terapkan keenam skill berikut dari C:/Users/Nazriel Fahri/.agents/skills: lean-code, planning, project-context, design-taste-frontend, emil-design-eng, impeccable. Verifikasi nama folder dan SKILL.md sebenarnya; laporkan jika tidak ditemukan. Terapkan bagian relevan untuk tugas, jangan hanya menyebut nama. Skill tambahan diperbolehkan bila relevan. Instruksi eksplisit pengguna mengungguli workflow skill, termasuk larangan screenshot. Aturan ini melengkapi daftar dan contoh workflow lama di dokumen ini.
