@@ -4,6 +4,7 @@ namespace App\Http\Controllers\User;
 
 use App\Http\Controllers\Controller;
 use App\Models\WasteCategory;
+use App\Services\WasteClassifier;
 use App\Http\Requests\User\StoreWasteReportRequest;
 use App\Support\ReportLabels;
 use Illuminate\Contracts\View\View;
@@ -43,7 +44,7 @@ class WasteReportController extends Controller
         return view('user.reports.create', ['categories' => WasteCategory::orderBy('name')->get()]);
     }
 
-    public function store(StoreWasteReportRequest $request): RedirectResponse
+    public function store(StoreWasteReportRequest $request, WasteClassifier $classifier): RedirectResponse
     {
         $validated = $request->validated();
         $imagePath = $request->file('image')->store('waste-reports', 'public');
@@ -52,6 +53,7 @@ class WasteReportController extends Controller
         }
 
         try {
+            $prediction = $classifier->predict($request->file('image'));
             $report = $request->user()->wasteReports()->create([
                 'category_id' => $validated['category_id'] ?? null,
                 'description' => $validated['description'],
@@ -59,6 +61,7 @@ class WasteReportController extends Controller
                 'latitude' => $validated['latitude'] ?? null,
                 'longitude' => $validated['longitude'] ?? null,
                 'status' => 'pending',
+                ...$prediction,
             ]);
         } catch (Throwable $exception) {
             Storage::disk('public')->delete($imagePath);
@@ -72,7 +75,7 @@ class WasteReportController extends Controller
     {
         $wasteReport = $request->user()
             ->wasteReports()
-            ->with(['category:id,name,slug', 'statusHistories' => fn ($query) => $query->orderBy('created_at')->orderBy('id'), 'statusHistories.changedBy:id,name'])
+            ->with(['category:id,name,slug', 'aiCategory:id,name', 'statusHistories' => fn ($query) => $query->orderBy('created_at')->orderBy('id'), 'statusHistories.changedBy:id,name'])
             ->findOrFail($report);
 
         return view('user.reports.show', ['report' => $wasteReport]);
