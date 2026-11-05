@@ -116,6 +116,12 @@ export default function HistoryScreen() {
         {!!pagination && <View style={styles.pagination}><View>{page > 1 && <Pressable accessibilityRole="button" disabled={loading} onPress={() => changePage(page - 1)} style={[styles.button, loading && {opacity:0.45}]}><Text style={styles.buttonText}>Sebelumnya</Text></Pressable>}</View><Text style={styles.hint}>{page} / {pagination.last_page}</Text>{<Pressable accessibilityRole="button" disabled={page >= pagination.last_page || loading} onPress={() => changePage(page + 1)} style={[styles.button, (page >= pagination.last_page || loading) && {opacity:0.45}]}><Text style={styles.buttonText}>Berikutnya</Text></Pressable>}</View>}
       </> : detail && <View style={styles.card}>
         <View style={styles.tags}>{badge(detail.status)}<Text style={styles.categoryText}>{categoryLabel(detail)}</Text></View>
+        <View style={styles.aiPanel}>
+          <Text style={styles.aiTitle}>Hasil Prediksi AI</Text>
+          {detail.ai_category && typeof detail.ai_confidence === 'number' && Number.isFinite(detail.ai_confidence)
+            ? <Text style={styles.aiValue}>{detail.ai_category.name} ({detail.ai_confidence.toLocaleString('id-ID', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}%)</Text>
+            : <Text style={styles.subtitle}>Prediksi AI tidak tersedia untuk laporan ini.</Text>}
+        </View>
         <Text style={styles.subtitle}>{detail.description}</Text>
         <ReportImage uri={detail.image_url} label="Foto laporan" contain style={styles.detailPhoto}/>
         <Text style={styles.subtitle}>{formatReportDate(detail.created_at)}</Text>
@@ -201,6 +207,9 @@ const styles = StyleSheet.create({
   tags: { flexDirection: 'row', flexWrap: 'wrap', gap: 5, alignItems: 'center' },
   category: { maxWidth: '100%', borderRadius: 12, backgroundColor: '#D8F6E8', paddingHorizontal: 8, paddingVertical: 3 },
   categoryText: { color: '#315B49', fontSize: 11, fontWeight: '600' },
+  aiPanel: { borderWidth: 1, borderColor: '#B9F0DC', borderRadius: 14, backgroundColor: '#EFFBF5', padding: 14, gap: 6 },
+  aiTitle: { color: '#102D23', fontSize: 14, fontWeight: '700' },
+  aiValue: { color: '#006C49', fontSize: 15, fontWeight: '600' },
   badge: { borderRadius: 12, paddingHorizontal: 8, paddingVertical: 3 },
   badgeText: { color: '#315B49', fontSize: 11, fontWeight: '600' },
   id: { fontSize: 12, color: '#52665D' },

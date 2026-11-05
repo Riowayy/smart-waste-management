@@ -9,6 +9,7 @@ use App\Http\Requests\UpdateWasteReportStatusRequest;
 use App\Models\User;
 use App\Models\WasteCategory;
 use App\Models\WasteReport;
+use App\Services\WasteClassifier;
 use Illuminate\Contracts\View\View;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Support\Facades\DB;
@@ -51,7 +52,7 @@ class WasteReportController extends Controller
         return view('admin.reports.create', $this->formOptions());
     }
 
-    public function store(StoreWasteReportRequest $request): RedirectResponse
+    public function store(StoreWasteReportRequest $request, WasteClassifier $classifier): RedirectResponse
     {
         $validated = $request->validated();
         $imagePath = $request->file('image')->store('waste-reports', 'public');
@@ -60,6 +61,7 @@ class WasteReportController extends Controller
         }
 
         try {
+            $prediction = $classifier->predict($request->file('image'));
             $report = DB::transaction(fn () => WasteReport::create([
                 'user_id' => $validated['user_id'],
                 'category_id' => $validated['category_id'] ?? null,
@@ -68,6 +70,7 @@ class WasteReportController extends Controller
                 'latitude' => $validated['latitude'] ?? null,
                 'longitude' => $validated['longitude'] ?? null,
                 'status' => 'pending',
+                ...$prediction,
             ]));
         } catch (\Throwable $exception) {
             Storage::disk('public')->delete($imagePath);

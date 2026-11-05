@@ -1,0 +1,3 @@
+# Only these packages are needed to create the image dataset.
+requests>=2.31,<3
+Pillow>=10,<13

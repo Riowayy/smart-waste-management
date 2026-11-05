@@ -9,6 +9,8 @@ export interface RecentReport {
   description: string;
   image_url?: string | null;
   category: { id: number; name: string; slug: string; description: string | null } | null;
+  ai_category?: { id: number; name: string; slug: string; description: string | null } | null;
+  ai_confidence?: number | null;
   status: ReportStatus;
   created_at: string | null;
 }

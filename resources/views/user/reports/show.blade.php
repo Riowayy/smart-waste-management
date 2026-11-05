@@ -14,7 +14,15 @@
         <article class="user-form space-y-6 xl:col-span-2" aria-labelledby="report-info-title">
             <h2 id="report-info-title" class="text-lg font-semibold text-slate-900">Informasi laporan</h2>
             <dl class="grid gap-6 sm:grid-cols-2">
-                <div><dt class="text-sm text-slate-600">Kategori sampah</dt><dd class="mt-2 font-semibold text-slate-900">{{ \App\Support\ReportLabels::category($report->category) }}</dd></div>
+                <div><dt class="text-sm text-slate-600">Kategori pilihan Anda</dt><dd class="mt-2 font-semibold text-slate-900">{{ \App\Support\ReportLabels::category($report->category) }}</dd></div>
+                <div class="rounded-xl border border-emerald-200 bg-emerald-50/70 p-4 sm:col-span-2">
+                    <dt class="text-sm font-semibold text-emerald-950">Hasil Prediksi AI</dt>
+                    @if($report->aiCategory && $report->ai_confidence !== null)
+                        <dd class="mt-2 font-semibold text-emerald-900">{{ $report->aiCategory->name }} <span class="font-normal">({{ number_format($report->ai_confidence, 2, ',', '.') }}%)</span></dd>
+                    @else
+                        <dd class="mt-2 text-sm leading-6 text-slate-700">Prediksi AI tidak tersedia untuk laporan ini.</dd>
+                    @endif
+                </div>
                 <div><dt class="text-sm text-slate-600">Lokasi</dt><dd class="mt-2 text-sm leading-6 text-slate-700">
                     @if($report->latitude !== null || $report->longitude !== null)
                         Lintang: {{ $report->latitude ?? 'Tidak diisi' }}<br>Bujur: {{ $report->longitude ?? 'Tidak diisi' }}

@@ -13,6 +13,8 @@ class WasteReportResource extends JsonResource
         return [
             'id' => $this->id,
             'category' => CategoryResource::make($this->whenLoaded('category')),
+            'ai_category' => CategoryResource::make($this->whenLoaded('aiCategory')),
+            'ai_confidence' => $this->ai_confidence,
             'description' => $this->description,
             'image_url' => Storage::disk('public')->url($this->image_path),
             'latitude' => $this->latitude,

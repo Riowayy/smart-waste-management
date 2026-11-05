@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Http\Requests\Api\V1\StoreWasteReportRequest as ApiStoreWasteReportRequest;
 use App\Http\Resources\Api\V1\WasteReportResource;
 use App\Models\WasteReport;
+use App\Services\WasteClassifier;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -26,7 +27,7 @@ class WasteReportController extends Controller
         ]);
 
         $reports = $request->user()->wasteReports()
-            ->with('category:id,name,slug,description')
+            ->with(['category:id,name,slug,description', 'aiCategory:id,name,slug,description'])
             ->when($filters['status'] ?? null, fn ($query, $status) => $query->where('status', $status))
             ->latest()
             ->orderByDesc('id')
@@ -45,7 +46,7 @@ class WasteReportController extends Controller
         );
     }
 
-    public function store(ApiStoreWasteReportRequest $request): JsonResponse
+    public function store(ApiStoreWasteReportRequest $request, WasteClassifier $classifier): JsonResponse
     {
         $validated = $request->validated();
         $imagePath = $request->file('image')->store('waste-reports', 'public');
@@ -55,6 +56,7 @@ class WasteReportController extends Controller
         }
 
         try {
+            $prediction = $classifier->predict($request->file('image'));
             $report = DB::transaction(fn () => $request->user()->wasteReports()->create([
                 'category_id' => $validated['category_id'] ?? null,
                 'description' => $validated['description'],
@@ -62,13 +64,14 @@ class WasteReportController extends Controller
                 'latitude' => $validated['latitude'] ?? null,
                 'longitude' => $validated['longitude'] ?? null,
                 'status' => 'pending',
+                ...$prediction,
             ]));
         } catch (Throwable $exception) {
             Storage::disk('public')->delete($imagePath);
             throw $exception;
         }
 
-        $report->load('category:id,name,slug,description');
+        $report->load(['category:id,name,slug,description', 'aiCategory:id,name,slug,description']);
 
         return $this->respond(
             WasteReportResource::make($report)->resolve(),
@@ -82,6 +85,7 @@ class WasteReportController extends Controller
         $wasteReport = $request->user()->wasteReports()
             ->with([
                 'category:id,name,slug,description',
+                'aiCategory:id,name,slug,description',
                 'statusHistories' => fn ($query) => $query->latest(),
                 'statusHistories.changedBy:id,name',
             ])

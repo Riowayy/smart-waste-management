@@ -1,0 +1,10 @@
+# Recommended Python version: 3.11
+requests>=2.31,<3
+Pillow>=10,<13
+numpy>=1.26,<3
+scikit-learn>=1.4,<2
+matplotlib>=3.8,<4
+tensorflow>=2.18,<2.21
+fastapi>=0.115,<1
+uvicorn[standard]>=0.30,<1
+python-multipart>=0.0.9,<1
