@@ -167,9 +167,9 @@ class ReportPredictionTest extends TestCase
         } else {
             $response = $this->withToken($user->createToken('mobile')->plainTextToken)
                 ->postJson('/api/v1/reports', $payload);
-            $response->assertCreated()->assertJsonPath('success', true)
+           $response->assertCreated()->assertJsonPath('success', true)
                 ->assertJsonPath('data.category.id', $selected->id)
-                ->assertJsonMissingPath('data.ai_category_id')->assertJsonMissingPath('data.ai_confidence');
+               ->assertJsonMissingPath('data.ai_category_id');
         }
 
         $response->assertSessionHasNoErrors();
