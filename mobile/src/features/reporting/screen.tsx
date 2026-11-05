@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import EcoModal from '../../components/eco-modal';
+import ReportImage from '../../components/report-image';
 import { freshLocation } from './location';
 import { useNavigationLock } from '../../components/navigation-lock';
 import { ActivityIndicator, Image, KeyboardAvoidingView, Platform, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
@@ -202,7 +203,7 @@ export default function CreateReportScreen() {
             <FormAction label="Periksa Status Pengiriman" disabled={busy} busy={busy} onPress={()=>void operation(recover)}/>
             {matches.map(report=><View key={report.id} style={styles.card}>
               <Text style={styles.copy}>Laporan #{report.id}: {report.description}</Text>
-              {!!report.image_url && <Image source={{uri:report.image_url}} accessibilityLabel="Foto laporan yang ditemukan" style={{height:160,width:'100%'}}/>}
+              {!!report.image_url && <ReportImage uri={report.image_url} label="Foto laporan yang ditemukan" style={{height:160,width:'100%'}}/>}
               <Text style={styles.locationHint}>Dibuat: {report.created_at ? new Date(report.created_at).toLocaleString('id-ID') : 'Tanggal tidak tersedia'}</Text>
               <FormAction label="Ini laporan saya, konfirmasi tersimpan" disabled={busy} onPress={confirmSaved}/>
             </View>)}
