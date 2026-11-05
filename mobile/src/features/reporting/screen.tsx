@@ -2,6 +2,7 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import EcoModal from '../../components/eco-modal';
 import ReportImage from '../../components/report-image';
 import { freshLocation } from './location';
+import { lookupReportAddress } from './address';
 import { useNavigationLock } from '../../components/navigation-lock';
 import { ActivityIndicator, Image, KeyboardAvoidingView, Platform, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -114,13 +115,8 @@ export default function CreateReportScreen() {
     if (!lock.current && !photoChoice.current) setPhotoSourceOpen(true);
   }
   async function resolveAddress(coordinates: {latitude:number;longitude:number}, revision:number) {
-    let timer:ReturnType<typeof setTimeout>|undefined;
-    try {
-      const addresses=await Promise.race([Location.reverseGeocodeAsync(coordinates),new Promise<never>((_,reject)=>{timer=setTimeout(()=>reject(new Error('Alamat belum tersedia.')),8000);})]);
-      const place=addresses[0];
-      if(active.current && revision===locationRevision.current && place) setAddress([...new Set([place.street,place.streetNumber,place.district,place.city,place.region,place.postalCode].filter(Boolean))].join(', '));
-    } catch { /* Alamat opsional; jangan menahan GPS atau pengiriman laporan. */ }
-    finally {clearTimeout(timer);}
+    const result = await lookupReportAddress(coordinates);
+    if(active.current && revision===locationRevision.current && result!==null) setAddress(result);
   }
   async function locate() {
     const revision=++locationRevision.current;

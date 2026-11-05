@@ -10,7 +10,7 @@ vm.runInNewContext('(function(module,exports){'+historyDataSource+'})')(historyD
 function loadMedia(file,dependencies) {
  const module={exports:{}};
  const source=ts.transpileModule(fs.readFileSync(file,'utf8'),{compilerOptions:{module:ts.ModuleKind.CommonJS,jsx:ts.JsxEmit.ReactJSX}}).outputText;
- vm.runInNewContext('(function(require,module,exports){'+source+'})',{URL})(name=>dependencies[name]??require(name),module,module.exports);
+ vm.runInNewContext('(function(require,module,exports){'+source+'})',{URL,setTimeout,clearTimeout})(name=>dependencies[name]??require(name),module,module.exports);
  return module.exports;
 }
 const imageUrl=loadMedia('src/services/report-image-url.ts',{'./api/config':{getApiBaseUrl:()=> 'http://192.168.1.7/smart-waste-management/public/api/v1'}});
@@ -29,6 +29,7 @@ function screen(submitReport, draftOverrides = {}, locationPermission = true, re
   compilerOptions:{module:ts.ModuleKind.CommonJS,jsx:ts.JsxEmit.ReactJSX},
  }).outputText;
  const dependencies={'../../components/report-image':{__esModule:true,default:ReportImage},'../../components/eco-modal':{__esModule:true,default:'eco-modal'},'./location':{freshLocation:gps},
+  './address':loadMedia('src/features/reporting/address.ts',{'expo-location':{reverseGeocodeAsync:locationOptions.reverseGeocodeAsync}}),
   react:{useCallback:callback=>callback,useEffect:()=>{},useRef:initial=>refs[refIndex++]??(refs[refIndex-1]={current:initial}),
    useState:initial=>{const i=stateIndex++;if(!(i in states))states[i]=i===0?{description:'Temuan sampah',categoryId:1,photo:{uri:'file:test.jpg'},location:{latitude:0,longitude:0},...draftOverrides}:i===1?(locationOptions.categories??[{id:1,name:'Kategori dari API'}]):i===2?'ready':initial;
     return [states[i],value=>{states[i]=typeof value==='function'?value(states[i]):value;}];}},
