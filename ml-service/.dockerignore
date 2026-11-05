@@ -1,0 +1,7 @@
+**
+!Dockerfile
+!api.py
+!requirements-inference.txt
+!artifacts/
+!artifacts/ecotrack.keras
+!artifacts/labels.json

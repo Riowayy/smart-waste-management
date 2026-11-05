@@ -23,12 +23,16 @@ state = {}
 
 @asynccontextmanager
 async def lifespan(_: FastAPI):
-    if not MODEL.exists() or not LABELS.exists():
-        raise RuntimeError("Model not trained. Run python train.py before starting the API.")
+    missing = [str(path) for path in (MODEL, LABELS) if not path.is_file()]
+    if missing:
+        raise RuntimeError(f"Required model artifact(s) are missing: {', '.join(missing)}")
     labels = json.loads(LABELS.read_text(encoding="utf-8"))
     if sorted(labels) != sorted(DISPLAY_LABELS):
         raise RuntimeError("Invalid class labels; model must match organic/paper/plastic.")
-    state["model"] = tf.keras.models.load_model(MODEL)
+    try:
+        state["model"] = tf.keras.models.load_model(MODEL, compile=False)
+    except Exception as error:
+        raise RuntimeError(f"Failed to load classifier model at {MODEL}: {error}") from error
     state["labels"] = labels
     yield
     state.clear()
