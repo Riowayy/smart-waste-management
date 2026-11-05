@@ -7,6 +7,19 @@ const historyData={exports:{}};
 const historyDataSource=ts.transpileModule(fs.readFileSync('src/features/reporting/history-data.ts','utf8'),{compilerOptions:{module:ts.ModuleKind.CommonJS}}).outputText;
 vm.runInNewContext('(function(module,exports){'+historyDataSource+'})')(historyData,historyData.exports);
 
+function loadMedia(file,dependencies) {
+ const module={exports:{}};
+ const source=ts.transpileModule(fs.readFileSync(file,'utf8'),{compilerOptions:{module:ts.ModuleKind.CommonJS,jsx:ts.JsxEmit.ReactJSX}}).outputText;
+ vm.runInNewContext('(function(require,module,exports){'+source+'})',{URL,setTimeout,clearTimeout})(name=>dependencies[name]??require(name),module,module.exports);
+ return module.exports;
+}
+const imageUrl=loadMedia('src/services/report-image-url.ts',{'./api/config':{getApiBaseUrl:()=> 'http://192.168.1.7/smart-waste-management/public/api/v1'}});
+const ReportImage=loadMedia('src/components/report-image.tsx',{
+ react:{useState:initial=>[initial,()=>{}]},
+ 'react-native':{View:'view',Text:'text',Pressable:'pressable',StyleSheet:{create:value=>value}},
+ 'expo-image':{Image:'server-image'},'expo-symbols':{SymbolView:'symbol'},'../services/report-image-url':imageUrl,
+}).default;
+
 function screen(submitReport, draftOverrides = {}, locationPermission = true, recovery = {}, gps = async()=>({coords:{latitude:0,longitude:180,accuracy:4}}), locationOptions = {}) {
  const states=[], refs=[]; let stateIndex=0,refIndex=0;
  let pending, navigationLocked = false;
@@ -15,7 +28,8 @@ function screen(submitReport, draftOverrides = {}, locationPermission = true, re
  const source=ts.transpileModule(fs.readFileSync('src/features/reporting/screen.tsx','utf8'),{
   compilerOptions:{module:ts.ModuleKind.CommonJS,jsx:ts.JsxEmit.ReactJSX},
  }).outputText;
- const dependencies={'../../components/eco-modal':{__esModule:true,default:'eco-modal'},'./location':{freshLocation:gps},
+ const dependencies={'../../components/report-image':{__esModule:true,default:ReportImage},'../../components/eco-modal':{__esModule:true,default:'eco-modal'},'./location':{freshLocation:gps},
+  './address':loadMedia('src/features/reporting/address.ts',{'expo-location':{reverseGeocodeAsync:locationOptions.reverseGeocodeAsync}}),
   react:{useCallback:callback=>callback,useEffect:()=>{},useRef:initial=>refs[refIndex++]??(refs[refIndex-1]={current:initial}),
    useState:initial=>{const i=stateIndex++;if(!(i in states))states[i]=i===0?{description:'Temuan sampah',categoryId:1,photo:{uri:'file:test.jpg'},location:{latitude:0,longitude:0},...draftOverrides}:i===1?(locationOptions.categories??[{id:1,name:'Kategori dari API'}]):i===2?'ready':initial;
     return [states[i],value=>{states[i]=typeof value==='function'?value(states[i]):value;}];}},
@@ -41,6 +55,7 @@ function screen(submitReport, draftOverrides = {}, locationPermission = true, re
  );
  function buttons(node,result=[]) {
   if(Array.isArray(node)){for(const child of node)buttons(child,result);return result;}
+  if(node?.type===ReportImage){buttons(ReportImage(node.props),result);return result;}
   if(node&&typeof node==='object'&&node.props){result.push(node.props);buttons(node.props.children,result);}
   return result;
  }
@@ -133,6 +148,26 @@ test('timeout dipulihkan melalui laporan yang dikonfirmasi pengguna tanpa POST k
  assert.equal(calls,1);assert.equal(view.states[6],true);
  view.render().find(b=>b.label==='Buat Laporan Baru').onPress();
  assert.equal(view.states[7],false);assert.equal(view.states[6],false);assert.equal(view.states[0].photo,null);
+});
+
+test('foto recovery memakai URL LAN sementara preview dan payload foto tetap lokal',async()=>{
+ for(const uri of ['http://127.0.0.1:8000/storage/waste-reports/a.jpg','/storage/waste-reports/a.jpg',null]) {
+  let calls=0,sent;
+  const photo={uri:'file:///local/report.jpg'};
+  const view=screen(async draft=>{calls++;sent=draft;throw new view.ApiError('timeout');},{photo},true,{
+   findSubmittedReports:async()=>[{id:9,description:'Temuan sampah',created_at:null,image_url:uri}],
+  });
+  view.render().find(b=>b.label==='Simpan Laporan').onPress();await tick();
+  view.render().find(b=>b.label==='Periksa Status Pengiriman').onPress();await tick();
+  const rendered=view.render();
+  const serverPhoto=rendered.find(b=>b.accessibilityLabel==='Foto laporan yang ditemukan');
+  if(uri) assert.equal(serverPhoto.source.uri,'http://192.168.1.7/smart-waste-management/public/storage/waste-reports/a.jpg');
+  else assert.equal(serverPhoto,undefined);
+  assert.equal(rendered.find(b=>b.accessibilityLabel==='Preview foto laporan').source.uri,photo.uri);
+  assert.equal(sent.photo,photo);
+  rendered.find(b=>b.label==='Ini laporan saya, konfirmasi tersimpan').onPress();
+  assert.equal(calls,1);assert.equal(view.states[6],true);
+ }
 });
 
 test('hasil kosong saat pemulihan tetap terkunci dan tidak mengulang upload',async()=>{
