@@ -9,6 +9,7 @@ use App\Http\Resources\Api\V1\UserResource;
 use App\Models\User;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
 
 class AuthController extends Controller
@@ -18,20 +19,23 @@ class AuthController extends Controller
     public function register(RegisterRequest $request): JsonResponse
     {
         $validated = $request->validated();
-        $user = User::forceCreate([
-            'name' => $validated['name'],
-            'email' => $validated['email'],
-            'password' => $validated['password'],
-            'role' => 'user',
-        ]);
 
-        $token = $user->createToken('mobile')->plainTextToken;
+        return DB::transaction(function () use ($validated): JsonResponse {
+            $user = User::forceCreate([
+                'name' => $validated['name'],
+                'email' => $validated['email'],
+                'password' => $validated['password'],
+                'role' => 'user',
+            ]);
 
-        return $this->respond([
-            'user' => UserResource::make($user)->resolve(),
-            'token' => $token,
-            'token_type' => 'Bearer',
-        ], 'Akun berhasil dibuat.', 201);
+            $token = $user->createToken('mobile')->plainTextToken;
+
+            return $this->respond([
+                'user' => UserResource::make($user)->resolve(),
+                'token' => $token,
+                'token_type' => 'Bearer',
+            ], 'Akun berhasil dibuat.', 201);
+        });
     }
 
     public function login(LoginRequest $request): JsonResponse

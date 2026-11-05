@@ -17,7 +17,8 @@ class UpdateCategoryRequest extends FormRequest
         $category = $this->route('category');
 
         return [
-            'name' => ['required', 'string', 'max:255', Rule::unique('waste_categories', 'name')->ignore($category)],
+            'name' => ['required', 'string', 'max:255', Rule::unique('waste_categories', 'name')->ignore($category), ...($category->isDefault() ? [Rule::in([$category->name])] : [])],
+            'slug' => $category->isDefault() ? ['sometimes', 'required', 'string', Rule::in([$category->slug])] : ['exclude'],
             'description' => ['nullable', 'string', 'max:5000'],
         ];
     }
@@ -26,6 +27,8 @@ class UpdateCategoryRequest extends FormRequest
     {
         return [
             'name.required' => 'Nama kategori wajib diisi.',
+            'name.in' => 'Nama kategori bawaan tidak dapat diubah. Anda dapat mengubah deskripsinya.',
+            'slug.in' => 'Slug kategori bawaan tidak dapat diubah.',
             'name.unique' => 'Nama kategori tersebut sudah digunakan kategori lain.',
             'description.max' => 'Deskripsi kategori tidak boleh lebih dari 5000 karakter.',
         ];

@@ -8,7 +8,10 @@ use App\Models\WasteCategory;
 use App\Models\WasteReport;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Http\UploadedFile;
+use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Storage;
+use Laravel\Sanctum\PersonalAccessToken;
+use RuntimeException;
 use Tests\TestCase;
 
 class MobileApiTest extends TestCase
@@ -27,11 +30,64 @@ class MobileApiTest extends TestCase
 
         $response->assertCreated()
             ->assertJsonPath('success', true)
+            ->assertJsonPath('message', 'Akun berhasil dibuat.')
             ->assertJsonPath('data.user.role', 'user')
             ->assertJsonPath('data.token_type', 'Bearer')
             ->assertJsonMissingPath('data.user.password');
 
         $this->assertDatabaseHas('users', ['email' => 'mobile@example.test', 'role' => 'user']);
+        $this->assertDatabaseCount('personal_access_tokens', 1);
+        $this->assertDatabaseCount('users', 1);
+
+        $user = User::query()->findOrFail($response->json('data.user.id'));
+        $this->assertTrue(Hash::check('secure-password', $user->password));
+        $token = PersonalAccessToken::findToken($response->json('data.token'));
+        $this->assertNotNull($token);
+        $this->assertTrue($token->tokenable->is($user));
+        $this->assertSame('mobile', $token->name);
+
+        $this->withToken($response->json('data.token'))->getJson('/api/v1/auth/me')
+            ->assertOk()->assertJsonPath('data.id', $user->id);
+    }
+
+    public function test_api_registration_rolls_back_user_and_token_when_token_creation_fails(): void
+    {
+        $payload = [
+            'name' => 'Mobile Member',
+            'email' => 'mobile@example.test',
+            'password' => 'secure-password',
+            'password_confirmation' => 'secure-password',
+        ];
+        $dispatcher = PersonalAccessToken::getEventDispatcher();
+        $failedUserId = null;
+        PersonalAccessToken::setEventDispatcher(clone $dispatcher);
+
+        try {
+            PersonalAccessToken::created(function (PersonalAccessToken $token) use (&$failedUserId): void {
+                $failedUserId = $token->tokenable_id;
+
+                throw new RuntimeException('Simulasi kegagalan pembuatan token.');
+            });
+
+            $this->postJson('/api/v1/auth/register', $payload)
+                ->assertStatus(500)
+                ->assertExactJson([
+                    'success' => false,
+                    'message' => 'Terjadi kesalahan pada server.',
+                    'data' => null,
+                    'errors' => null,
+                ]);
+        } finally {
+            PersonalAccessToken::setEventDispatcher($dispatcher);
+        }
+
+        $this->assertNotNull($failedUserId);
+        $this->assertDatabaseMissing('users', ['id' => $failedUserId]);
+        $this->assertDatabaseCount('users', 0);
+        $this->assertDatabaseCount('personal_access_tokens', 0);
+
+        $this->postJson('/api/v1/auth/register', $payload)->assertCreated();
+        $this->assertDatabaseCount('users', 1);
         $this->assertDatabaseCount('personal_access_tokens', 1);
     }
 
