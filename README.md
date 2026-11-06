@@ -138,7 +138,7 @@ Kredensial berikut telah diverifikasi terhadap database lokal assessment ini, te
 | Peran | Email | Password |
 |---|---|---|
 | Admin | `admin@ecotrack.com` | `admin123` |
-| User | `nazriel@ecotrack.com` | `user123` |
+| User | `user@ecotrack.com` | `user123` |
 
 Akun demo tidak dibuat oleh seeder repository. Ketersediaannya pada database assessment saat ini tidak berarti akun tersebut otomatis tersedia pada database instalasi baru.
 
